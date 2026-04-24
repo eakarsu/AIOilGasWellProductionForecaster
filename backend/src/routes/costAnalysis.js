@@ -1,0 +1,52 @@
+const router = require('express').Router();
+const pool = require('../models/db');
+const auth = require('../middleware/auth');
+
+router.get('/', auth, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM cost_analysis ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM cost_analysis WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json(result.rows[0]);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/', auth, async (req, res) => {
+  try {
+    const { well_name, field_name, capex_usd, opex_monthly_usd, drilling_cost_usd, completion_cost_usd, npv_usd, irr_pct, payback_months, breakeven_price_usd, oil_price_usd, production_rate_bpd, operating_margin_pct, project_status } = req.body;
+    const result = await pool.query(
+      `INSERT INTO cost_analysis (well_name, field_name, capex_usd, opex_monthly_usd, drilling_cost_usd, completion_cost_usd, npv_usd, irr_pct, payback_months, breakeven_price_usd, oil_price_usd, production_rate_bpd, operating_margin_pct, project_status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+      [well_name, field_name, capex_usd, opex_monthly_usd, drilling_cost_usd, completion_cost_usd, npv_usd, irr_pct, payback_months, breakeven_price_usd, oil_price_usd, production_rate_bpd, operating_margin_pct, project_status]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/:id', auth, async (req, res) => {
+  try {
+    const { well_name, field_name, capex_usd, opex_monthly_usd, drilling_cost_usd, completion_cost_usd, npv_usd, irr_pct, payback_months, breakeven_price_usd, oil_price_usd, production_rate_bpd, operating_margin_pct, project_status } = req.body;
+    const result = await pool.query(
+      `UPDATE cost_analysis SET well_name=$1, field_name=$2, capex_usd=$3, opex_monthly_usd=$4, drilling_cost_usd=$5, completion_cost_usd=$6, npv_usd=$7, irr_pct=$8, payback_months=$9, breakeven_price_usd=$10, oil_price_usd=$11, production_rate_bpd=$12, operating_margin_pct=$13, project_status=$14, updated_at=NOW() WHERE id=$15 RETURNING *`,
+      [well_name, field_name, capex_usd, opex_monthly_usd, drilling_cost_usd, completion_cost_usd, npv_usd, irr_pct, payback_months, breakeven_price_usd, oil_price_usd, production_rate_bpd, operating_margin_pct, project_status, req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json(result.rows[0]);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM cost_analysis WHERE id = $1 RETURNING *', [req.params.id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    res.json({ message: 'Deleted successfully' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+module.exports = router;
