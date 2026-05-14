@@ -10,7 +10,7 @@ async function queryOpenRouter(prompt, systemPrompt = '') {
       'X-Title': 'Oil & Gas Well Production Forecaster'
     },
     body: JSON.stringify({
-      model: process.env.OPENROUTER_MODEL || 'anthropic/claude-haiku-4.5',
+      model: process.env.OPENROUTER_MODEL || 'anthropic/claude-3-5-sonnet-20241022',
       messages: [
         { role: 'system', content: systemPrompt || 'You are an expert petroleum engineer and data analyst specializing in oil and gas production optimization. Provide detailed, professional analysis with specific recommendations. Format your response with clear sections using markdown headers (##), bullet points, and bold text for key metrics.' },
         { role: 'user', content: prompt }
@@ -24,7 +24,11 @@ async function queryOpenRouter(prompt, systemPrompt = '') {
   if (data.error) {
     throw new Error(data.error.message || 'OpenRouter API error');
   }
-  return data.choices[0].message.content;
+  return {
+    content: data.choices[0].message.content,
+    tokensUsed: data.usage?.total_tokens || 0,
+    model: data.model || process.env.OPENROUTER_MODEL || 'anthropic/claude-3-5-sonnet-20241022'
+  };
 }
 
 module.exports = { queryOpenRouter };

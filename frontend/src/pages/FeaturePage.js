@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FEATURES } from '../services/features';
-import { getItems, getItem, createItem, updateItem, deleteItem, analyzeWithAI } from '../services/api';
+import { getItems, getItem, createItem, updateItem, deleteItem, analyzeWithAI, calculateDeclineCurve } from '../services/api';
 import { toast } from 'react-toastify';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 function parseMarkdown(text) {
   if (!text) return '';
@@ -35,6 +36,8 @@ export default function FeaturePage() {
   const [formData, setFormData] = useState({});
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [declineCalc, setDeclineCalc] = useState(null);
+  const [calcLoading, setCalcLoading] = useState(false);
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -64,8 +67,24 @@ export default function FeaturePage() {
       setSelectedItem(data);
       setShowDetail(true);
       setAiAnalysis('');
+      setDeclineCalc(null);
     } catch (err) {
       toast.error('Failed to load details');
+    }
+  };
+
+  const handleCalculateDecline = async () => {
+    if (!selectedItem) return;
+    setCalcLoading(true);
+    setDeclineCalc(null);
+    try {
+      const { data } = await calculateDeclineCurve(selectedItem.id);
+      setDeclineCalc(data);
+      toast.success('Decline curve calculated');
+    } catch (err) {
+      toast.error('Calculation failed: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setCalcLoading(false);
     }
   };
 
@@ -264,6 +283,56 @@ export default function FeaturePage() {
                   <div className="ai-analysis-content" dangerouslySetInnerHTML={{ __html: parseMarkdown(aiAnalysis) }} />
                 )}
               </div>
+
+              {/* Decline Curve Calculate Section — only shown on decline-curves feature */}
+              {featureKey === 'decline-curves' && (
+                <div className="ai-analysis-container" style={{ marginTop: 16 }}>
+                  <div className="ai-analysis-header">
+                    <span style={{ fontSize: 24 }}>&#128200;</span>
+                    Arps Decline Curve Calculator
+                  </div>
+                  {!declineCalc && !calcLoading && (
+                    <button className="btn btn-ai" style={{ background: 'linear-gradient(135deg, #10B981, #059669)' }} onClick={handleCalculateDecline}>
+                      Calculate Decline Curve
+                    </button>
+                  )}
+                  {calcLoading && (
+                    <div className="ai-loading">
+                      <div className="ai-spinner" />
+                      Calculating decline curve...
+                    </div>
+                  )}
+                  {declineCalc && (
+                    <div>
+                      <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
+                        <div style={{ background: '#F0FDF4', padding: '8px 14px', borderRadius: 8, fontSize: 13 }}>
+                          <strong>qi:</strong> {declineCalc.qi} BPD
+                        </div>
+                        <div style={{ background: '#F0FDF4', padding: '8px 14px', borderRadius: 8, fontSize: 13 }}>
+                          <strong>Di:</strong> {(declineCalc.Di * 100).toFixed(3)}%/mo
+                        </div>
+                        <div style={{ background: '#DBEAFE', padding: '8px 14px', borderRadius: 8, fontSize: 13 }}>
+                          <strong>EUR:</strong> {declineCalc.EUR_bbl?.toLocaleString()} BBL
+                        </div>
+                      </div>
+                      <ResponsiveContainer width="100%" height={220}>
+                        <LineChart data={declineCalc.forecast_12mo}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" label={{ value: 'Month', position: 'insideBottom', offset: -2 }} />
+                          <YAxis label={{ value: 'BPD', angle: -90, position: 'insideLeft' }} />
+                          <Tooltip formatter={(val) => `${val.toFixed(1)} BPD`} />
+                          <Line type="monotone" dataKey="rate_bpd" stroke="#10B981" name="Rate (BPD)" dot={false} strokeWidth={2} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                      {declineCalc.ai_narrative && (
+                        <div className="ai-analysis-content" style={{ marginTop: 12 }}>
+                          {declineCalc.ai_narrative}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="modal-actions">
               <button className="btn btn-secondary" onClick={() => setShowDetail(false)}>Close</button>

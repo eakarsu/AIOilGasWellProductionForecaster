@@ -4,7 +4,18 @@ const auth = require('../middleware/auth');
 
 router.get('/', auth, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM drilling_operations ORDER BY created_at DESC');
+    const { page, limit = 20 } = req.query;
+    const baseQuery = 'SELECT * FROM drilling_operations ORDER BY created_at DESC';
+    if (page) {
+      const pageNum = Math.max(1, parseInt(page));
+      const limitNum = Math.max(1, Math.min(100, parseInt(limit)));
+      const offset = (pageNum - 1) * limitNum;
+      const countResult = await pool.query('SELECT COUNT(*)::int as total FROM drilling_operations');
+      const total = countResult.rows[0].total;
+      const result = await pool.query(baseQuery + ' LIMIT $1 OFFSET $2', [limitNum, offset]);
+      return res.json({ data: result.rows, pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) } });
+    }
+    const result = await pool.query(baseQuery);
     res.json(result.rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

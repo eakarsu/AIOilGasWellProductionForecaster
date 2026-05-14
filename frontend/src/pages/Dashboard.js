@@ -52,6 +52,38 @@ const TOOLS = [
     color: '#6366F1',
     path: '/profile',
   },
+  {
+    key: 'production-history',
+    title: 'Production History',
+    description: 'Time-series production data with charts and CSV import',
+    icon: '\uD83D\uDCC8',
+    color: '#3B82F6',
+    path: '/production-history',
+  },
+  {
+    key: 'ai-history',
+    title: 'AI Analysis History',
+    description: 'Review all past AI analyses and results',
+    icon: '\uD83E\uDDE0',
+    color: '#8B5CF6',
+    path: '/ai-history',
+  },
+  {
+    key: 'ai-predictive',
+    title: 'AI Predictive Tools',
+    description: 'Production anomalies, pipeline rupture prediction, and optimal maintenance windows',
+    icon: '🔮',
+    color: '#0EA5E9',
+    path: '/ai-predictive',
+  },
+  {
+    key: 'alert-rules',
+    title: 'Alert Rules',
+    description: 'Configure threshold-based alerts and evaluate violations',
+    icon: '\uD83D\uDEA8',
+    color: '#EF4444',
+    path: '/alert-rules',
+  },
 ];
 
 const KPI_ICONS = {
