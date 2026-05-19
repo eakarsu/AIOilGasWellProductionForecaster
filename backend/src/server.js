@@ -10,7 +10,7 @@ const PORT = process.env.BACKEND_PORT || 4000;
 // Security
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: process.env.CLIENT_URL || ['http://localhost:3000', 'http://localhost:3500'],
   credentials: true
 }));
 app.use(express.json());
@@ -50,6 +50,9 @@ app.use('/api/ai-history', require('./routes/aiHistory'));
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Oil & Gas Forecaster API Running' });
 });
+
+// === Custom Views mount (must be before 404/error handler) ===
+app.use('/api/custom-views', require('./routes/customViews'));
 
 // Generic error handler
 app.use((err, req, res, next) => {

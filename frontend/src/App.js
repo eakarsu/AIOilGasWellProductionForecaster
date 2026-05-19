@@ -11,6 +11,7 @@ import ProductionHistoryPage from './pages/ProductionHistoryPage';
 import AIHistoryPage from './pages/AIHistoryPage';
 import AlertRulesPage from './pages/AlertRulesPage';
 import AIPredictivePage from './pages/AIPredictivePage';
+import CustomViewsPage from './pages/CustomViewsPage';
 
 // // === Batch 06 Gaps & Frontend Mounts ===
 import CFAgenticWellOptimizationPage from './pages/CFAgenticWellOptimizationPage';
@@ -50,6 +51,7 @@ function App() {
         <Route path="/ai-history" element={<PrivateRoute><AIHistoryPage /></PrivateRoute>} />
         <Route path="/alert-rules" element={<PrivateRoute><AlertRulesPage /></PrivateRoute>} />
         <Route path="/ai-predictive" element={<PrivateRoute><AIPredictivePage /></PrivateRoute>} />
+        <Route path="/custom-views" element={<PrivateRoute><CustomViewsPage /></PrivateRoute>} />
         <Route path="/" element={<Navigate to="/login" />} />
       
           {/* // === Batch 06 Gaps & Frontend Mounts === */}
