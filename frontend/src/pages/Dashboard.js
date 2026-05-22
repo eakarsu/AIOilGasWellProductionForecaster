@@ -84,6 +84,14 @@ const TOOLS = [
     color: '#EF4444',
     path: '/alert-rules',
   },
+  {
+    key: 'wells-views',
+    title: 'Wells Views',
+    description: 'Custom production decline curves, field heatmap, forecast PDF, and operating rules',
+    icon: '\u26F0\uFE0F',
+    color: '#A78BFA',
+    path: '/custom-views',
+  },
 ];
 
 const KPI_ICONS = {

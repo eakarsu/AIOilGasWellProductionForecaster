@@ -31,6 +31,9 @@ import GapNoIntegrationWithGeologicalPetrophysicalDatabPage from './pages/GapNoI
 import GapNoWebhooksForAlertDeliveryPagerdutySlackPage from './pages/GapNoWebhooksForAlertDeliveryPagerdutySlackPage';
 import GapNoMobileFieldPage from './pages/GapNoMobileFieldPage';
 import GapNoRbacBeyondAuthPage from './pages/GapNoRbacBeyondAuthPage';
+import CodexCustomVizFeature from './pages/CodexCustomVizFeature';
+import CodexOperationsFeature from './pages/CodexOperationsFeature';
+
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('token');
   return token ? children : <Navigate to="/login" />;
@@ -40,6 +43,9 @@ function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/codex/custom-viz" element={<CodexCustomVizFeature />} />
+        <Route path="/codex/operations" element={<CodexOperationsFeature />} />
+
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/feature/:featureKey" element={<PrivateRoute><FeaturePage /></PrivateRoute>} />
