@@ -10,6 +10,7 @@ import {
   aiMultiWellPortfolio,
   aiSensorAnomalyBatch,
 } from '../services/api';
+import AIResultReport from '../components/AIResultReport';
 
 const TOOLS = [
   { id: 'production-anomaly', label: 'Production Anomaly', color: '#3B82F6' },
@@ -21,6 +22,68 @@ const TOOLS = [
   { id: 'sensor-anomaly-batch', label: 'Sensor Anomaly Batch', color: '#F97316' },
 ];
 
+const DEFAULT_FORMS = {
+  anomaly: {
+    well_id: '1',
+    recent_readings: '[{"date":"2025-01-01","oil_bpd":1200,"pressure_psi":2400,"water_cut_pct":18},{"date":"2025-01-02","oil_bpd":980,"pressure_psi":2180,"water_cut_pct":24}]',
+    baseline: '{"oil_bpd_mean":1300,"pressure_mean":2450,"water_cut_pct_mean":18,"normal_variance_pct":8}',
+    notes: 'Recent pressure and oil-rate decline after choke adjustment. Check for equipment restriction, artificial lift issue, or reservoir anomaly.',
+  },
+  pipeline: {
+    pipeline_id: '3',
+    pressure_history: '[{"ts":"2025-01-01T08:00:00Z","psi":1450},{"ts":"2025-01-01T09:00:00Z","psi":1390},{"ts":"2025-01-01T10:00:00Z","psi":1215}]',
+    flow_history: '[{"ts":"2025-01-01T08:00:00Z","bpd":8200},{"ts":"2025-01-01T09:00:00Z","bpd":7900},{"ts":"2025-01-01T10:00:00Z","bpd":7100}]',
+    age_years: '18',
+    last_inspection: '2024-09-15',
+  },
+  maintenance: {
+    asset_id: '7',
+    asset_type: 'Electric Submersible Pump',
+    production_schedule: '[{"date":"2025-02-01","production_priority":"high"},{"date":"2025-02-05","planned_rate_bpd":1150},{"date":"2025-02-08","planned_rate_bpd":900}]',
+    weather_window: 'Low wind and clear access expected Feb 5-8; road access limited after Feb 10.',
+    constraints: 'Avoid downtime during peak production days. Maintenance crew available for one 12-hour shift. Parts are on site.',
+  },
+  nearMiss: {
+    site_name: 'Permian North Pad 12',
+    well_name: 'PN-12H',
+    event_date: '2025-01-14',
+    description: 'Dropped hand tool from work platform during pressure test setup; no injury, but crew was inside potential drop zone.',
+    activity: 'Pressure testing and rig-up',
+    hazard_category: 'Dropped object',
+    energy_sources: 'Gravity, stored pressure, mechanical handling',
+    witness_count: '4',
+    recent_similar_count: '2',
+    osha_recordables_12mo: '1',
+    crew_experience_yrs: '3.5',
+  },
+  portfolio: {
+    horizon_days: '90',
+    ranking_metric: 'expected_eur',
+    wells: '[{"well_name":"Eagle Ford 14H","avg_oil_bpd":620,"avg_gas_mcfd":1800,"water_cut_pct":21,"downtime_pct":4},{"well_name":"Permian 22H","avg_oil_bpd":910,"avg_gas_mcfd":2600,"water_cut_pct":16,"downtime_pct":9},{"well_name":"Bakken 8H","avg_oil_bpd":430,"avg_gas_mcfd":1100,"water_cut_pct":29,"downtime_pct":6}]',
+  },
+  sensor: {
+    sensor_id: 'WH-14H-PT-02',
+    window_minutes: '60',
+    baseline: '{"pressure_psi":[2200,2500],"temperature_f":[145,172],"vibration_mm_s":[0.1,2.5]}',
+    readings: '[{"ts":"2025-01-01T09:00:00Z","pressure_psi":2420,"temperature_f":160,"vibration_mm_s":1.2},{"ts":"2025-01-01T09:15:00Z","pressure_psi":2100,"temperature_f":166,"vibration_mm_s":3.4},{"ts":"2025-01-01T09:30:00Z","pressure_psi":1980,"temperature_f":174,"vibration_mm_s":4.1}]',
+  },
+  lifecycle: {
+    asset_name: 'ESP-22H-A',
+    asset_type: 'Electric Submersible Pump',
+    manufacturer: 'BoreLift Systems',
+    model: 'ESP-9000X',
+    install_date: '2021-06-18',
+    design_life_years: '6',
+    operating_hours: '28400',
+    cumulative_throughput: '1.42M BBL',
+    health_score: '62',
+    maintenance_history: '[{"date":"2023-04-11","type":"seal inspection"},{"date":"2024-08-04","type":"motor lead replacement"}]',
+    failure_history: '[{"date":"2024-10-19","mode":"high vibration shutdown","downtime_hours":18}]',
+    replacement_cost_usd: '185000',
+    annual_opex_usd: '42000',
+  },
+};
+
 export default function AIPredictivePage() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -29,65 +92,13 @@ export default function AIPredictivePage() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
 
-  const [anomalyForm, setAnomalyForm] = useState({
-    well_id: '',
-    recent_readings: '',
-    baseline: '',
-    notes: '',
-  });
-  const [pipelineForm, setPipelineForm] = useState({
-    pipeline_id: '',
-    pressure_history: '',
-    flow_history: '',
-    age_years: '',
-    last_inspection: '',
-  });
-  const [maintenanceForm, setMaintenanceForm] = useState({
-    asset_id: '',
-    asset_type: '',
-    production_schedule: '',
-    weather_window: '',
-    constraints: '',
-  });
-  const [nearMissForm, setNearMissForm] = useState({
-    site_name: '',
-    well_name: '',
-    event_date: '',
-    description: '',
-    activity: '',
-    hazard_category: '',
-    energy_sources: '',
-    witness_count: '',
-    recent_similar_count: '',
-    osha_recordables_12mo: '',
-    crew_experience_yrs: '',
-  });
-  const [portfolioForm, setPortfolioForm] = useState({
-    horizon_days: '90',
-    ranking_metric: 'expected_eur',
-    wells: '',
-  });
-  const [sensorForm, setSensorForm] = useState({
-    sensor_id: '',
-    window_minutes: '60',
-    baseline: '',
-    readings: '',
-  });
-  const [lifecycleForm, setLifecycleForm] = useState({
-    asset_name: '',
-    asset_type: '',
-    manufacturer: '',
-    model: '',
-    install_date: '',
-    design_life_years: '',
-    operating_hours: '',
-    cumulative_throughput: '',
-    health_score: '',
-    maintenance_history: '',
-    failure_history: '',
-    replacement_cost_usd: '',
-    annual_opex_usd: '',
-  });
+  const [anomalyForm, setAnomalyForm] = useState(DEFAULT_FORMS.anomaly);
+  const [pipelineForm, setPipelineForm] = useState(DEFAULT_FORMS.pipeline);
+  const [maintenanceForm, setMaintenanceForm] = useState(DEFAULT_FORMS.maintenance);
+  const [nearMissForm, setNearMissForm] = useState(DEFAULT_FORMS.nearMiss);
+  const [portfolioForm, setPortfolioForm] = useState(DEFAULT_FORMS.portfolio);
+  const [sensorForm, setSensorForm] = useState(DEFAULT_FORMS.sensor);
+  const [lifecycleForm, setLifecycleForm] = useState(DEFAULT_FORMS.lifecycle);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -98,6 +109,19 @@ export default function AIPredictivePage() {
   const parseJsonOrText = (s) => {
     if (!s || !s.trim()) return undefined;
     try { return JSON.parse(s); } catch { return s; }
+  };
+
+  const fillToolDefaults = (toolId) => {
+    setActiveTool(toolId);
+    setResult(null);
+    setError('');
+    if (toolId === 'production-anomaly') setAnomalyForm({ ...DEFAULT_FORMS.anomaly });
+    if (toolId === 'pipeline-rupture') setPipelineForm({ ...DEFAULT_FORMS.pipeline });
+    if (toolId === 'maintenance-window') setMaintenanceForm({ ...DEFAULT_FORMS.maintenance });
+    if (toolId === 'near-miss') setNearMissForm({ ...DEFAULT_FORMS.nearMiss });
+    if (toolId === 'multi-well-portfolio') setPortfolioForm({ ...DEFAULT_FORMS.portfolio });
+    if (toolId === 'sensor-anomaly-batch') setSensorForm({ ...DEFAULT_FORMS.sensor });
+    if (toolId === 'asset-lifecycle') setLifecycleForm({ ...DEFAULT_FORMS.lifecycle });
   };
 
   const run = async () => {
@@ -217,27 +241,20 @@ export default function AIPredictivePage() {
           <p>Anomaly detection, pipeline rupture prediction, and optimal maintenance windows</p>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+        <div className="ai-tool-tabs">
           {TOOLS.map((t) => (
             <button
               key={t.id}
-              onClick={() => { setActiveTool(t.id); setResult(null); setError(''); }}
-              style={{
-                padding: '10px 16px',
-                border: `2px solid ${t.color}`,
-                background: activeTool === t.id ? t.color : 'transparent',
-                color: activeTool === t.id ? '#fff' : t.color,
-                borderRadius: 8,
-                cursor: 'pointer',
-                fontWeight: 600,
-              }}
+              onClick={() => fillToolDefaults(t.id)}
+              className={activeTool === t.id ? 'active' : ''}
+              style={{ '--tool-color': t.color }}
             >
               {t.label}
             </button>
           ))}
         </div>
 
-        <div style={{ background: '#fff', padding: 24, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+        <div className="ai-predictive-panel">
           {activeTool === 'production-anomaly' && (
             <>
               <h3>Production Anomaly Detection</h3>
@@ -340,7 +357,7 @@ export default function AIPredictivePage() {
           {activeTool === 'multi-well-portfolio' && (
             <>
               <h3>Multi-Well Portfolio Analytics</h3>
-              <p style={{ color: '#666', marginTop: 0 }}>Default horizon 90 days; default ranking metric is expected EUR. Leave Wells JSON blank to aggregate from production_history.</p>
+              <p className="ai-field-help">Default horizon 90 days; default ranking metric is expected EUR. Leave Wells JSON blank to aggregate from production history.</p>
               <div style={{ display: 'grid', gap: 12 }}>
                 <div><label>Horizon (days)</label><input type="number" value={portfolioForm.horizon_days} onChange={(e) => setPortfolioForm({ ...portfolioForm, horizon_days: e.target.value })} /></div>
                 <div><label>Ranking metric</label>
@@ -361,7 +378,7 @@ export default function AIPredictivePage() {
           {activeTool === 'sensor-anomaly-batch' && (
             <>
               <h3>Sensor Anomaly Batch Scan</h3>
-              <p style={{ color: '#666', marginTop: 0 }}>Synchronous batch endpoint over a sliding window of sensor readings. Streaming UI is a future product decision.</p>
+              <p className="ai-field-help">Synchronous batch endpoint over a sliding window of sensor readings.</p>
               <div style={{ display: 'grid', gap: 12 }}>
                 <div><label>Sensor ID</label><input value={sensorForm.sensor_id} onChange={(e) => setSensorForm({ ...sensorForm, sensor_id: e.target.value })} /></div>
                 <div><label>Window (minutes)</label><input type="number" value={sensorForm.window_minutes} onChange={(e) => setSensorForm({ ...sensorForm, window_minutes: e.target.value })} /></div>
@@ -395,29 +412,18 @@ export default function AIPredictivePage() {
           <button
             onClick={run}
             disabled={loading}
-            style={{
-              marginTop: 16,
-              padding: '12px 24px',
-              background: '#3B82F6',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 8,
-              cursor: 'pointer',
-              fontWeight: 600,
-            }}
+            className="btn btn-ai"
+            style={{ marginTop: 16, width: 'auto' }}
           >
             {loading ? 'Running...' : 'Run AI'}
           </button>
 
-          {error && <div style={{ color: '#EF4444', marginTop: 16 }}>{error}</div>}
+          {error && <div className="ai-error-message">{error}</div>}
         </div>
 
         {result && (
-          <div style={{ marginTop: 24, background: '#fff', padding: 24, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-            <h3>Result</h3>
-            <pre style={{ background: '#F3F4F6', padding: 16, borderRadius: 8, overflow: 'auto', maxHeight: 500, fontSize: 13 }}>
-              {JSON.stringify(result.result || result.data || result, null, 2)}
-            </pre>
+          <div style={{ marginTop: 24 }}>
+            <AIResultReport data={result.result || result.data || result} title="Predictive AI Report" />
           </div>
         )}
       </div>

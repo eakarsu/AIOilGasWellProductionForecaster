@@ -81,5 +81,13 @@ export const createAlertRule = (data) => API.post('/alerts/rules', data);
 export const updateAlertRule = (id, data) => API.put(`/alerts/rules/${id}`, data);
 export const deleteAlertRule = (id) => API.delete(`/alerts/rules/${id}`);
 export const evaluateAlerts = () => API.get('/alerts/evaluate');
+export const sendChatbotMessage = (message) => API.post('/chatbot/message', { message });
+export const getOperationItems = (resource) => API.get(`/operations/${resource}`);
+export const getOperationItem = (resource, id) => API.get(`/operations/${resource}/${id}`);
+export const createOperationItem = (resource, data) => API.post(`/operations/${resource}`, data);
+export const updateOperationItem = (resource, id, data) => API.put(`/operations/${resource}/${id}`, data);
+export const deleteOperationItem = (resource, id) => API.delete(`/operations/${resource}/${id}`);
+export const getOperationInsights = () => API.get('/operations/insights/summary');
+export const analyzeOperationItem = (resource, id, action) => API.post(`/ai/operations/${resource}/${id}/${action}`);
 
 export default API;

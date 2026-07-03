@@ -46,6 +46,8 @@ app.use('/api/field-notes', require('./routes/fieldNotes'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/production-history', require('./routes/productionHistory'));
 app.use('/api/ai-history', require('./routes/aiHistory'));
+app.use('/api/operations', require('./routes/operations'));
+app.use('/api/chatbot', require('./routes/chatbot'));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Oil & Gas Forecaster API Running' });

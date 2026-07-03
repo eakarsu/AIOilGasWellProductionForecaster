@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { getAIHistory, getAIHistoryItem } from '../services/api';
+import AIResultReport from '../components/AIResultReport';
 
 export default function AIHistoryPage() {
   const navigate = useNavigate();
@@ -38,6 +39,10 @@ export default function AIHistoryPage() {
     } finally {
       setDetailLoading(false);
     }
+  };
+
+  const handleRowClick = (record) => {
+    if (!detailLoading) handleViewFull(record.id);
   };
 
   const handleLogout = () => {
@@ -87,12 +92,11 @@ export default function AIHistoryPage() {
                     <th>Tokens</th>
                     <th>Created At</th>
                     <th>Preview</th>
-                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {records.map(r => (
-                    <tr key={r.id}>
+                    <tr key={r.id} onClick={() => handleRowClick(r)} title="Click to view AI analysis details">
                       <td><span style={{ fontFamily: 'monospace', fontSize: 12 }}>{r.endpoint}</span></td>
                       <td>{r.entity_table || '-'}</td>
                       <td>{r.entity_id || '-'}</td>
@@ -101,16 +105,6 @@ export default function AIHistoryPage() {
                       <td>{new Date(r.created_at).toLocaleString()}</td>
                       <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, color: '#64748b' }}>
                         {r.result_preview}
-                      </td>
-                      <td>
-                        <button
-                          className="btn btn-primary"
-                          style={{ padding: '4px 10px', fontSize: 12, width: 'auto' }}
-                          onClick={() => handleViewFull(r.id)}
-                          disabled={detailLoading}
-                        >
-                          View Full
-                        </button>
                       </td>
                     </tr>
                   ))}
@@ -136,22 +130,47 @@ export default function AIHistoryPage() {
       {/* Full Result Modal */}
       {selected && (
         <div className="modal-overlay" onClick={() => setSelected(null)}>
-          <div className="modal" style={{ maxWidth: 800 }} onClick={e => e.stopPropagation()}>
+          <div className="modal ai-history-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>AI Analysis — {selected.endpoint}</h2>
+              <h2>AI Analysis Details</h2>
               <button className="modal-close" onClick={() => setSelected(null)}>&times;</button>
             </div>
             <div className="modal-body">
-              <div style={{ marginBottom: 12, display: 'flex', gap: 16, fontSize: 13, color: '#64748b' }}>
-                <span>Table: <strong>{selected.entity_table}</strong></span>
-                <span>Entity: <strong>{selected.entity_id}</strong></span>
-                <span>Model: <strong>{selected.model}</strong></span>
-                <span>Tokens: <strong>{selected.tokens_used?.toLocaleString()}</strong></span>
-                <span>{new Date(selected.created_at).toLocaleString()}</span>
+              <div className="ai-history-detail-grid">
+                <div className="ai-history-detail-card wide">
+                  <label>Endpoint</label>
+                  <strong>{selected.endpoint || '-'}</strong>
+                </div>
+                <div className="ai-history-detail-card">
+                  <label>Source Table</label>
+                  <strong>{selected.entity_table || '-'}</strong>
+                </div>
+                <div className="ai-history-detail-card">
+                  <label>Entity ID</label>
+                  <strong>{selected.entity_id || '-'}</strong>
+                </div>
+                <div className="ai-history-detail-card">
+                  <label>Model</label>
+                  <strong>{selected.model || '-'}</strong>
+                </div>
+                <div className="ai-history-detail-card">
+                  <label>Tokens</label>
+                  <strong>{selected.tokens_used?.toLocaleString() || '-'}</strong>
+                </div>
+                <div className="ai-history-detail-card">
+                  <label>Created</label>
+                  <strong>{selected.created_at ? new Date(selected.created_at).toLocaleString() : '-'}</strong>
+                </div>
               </div>
-              <div className="ai-analysis-content" style={{ whiteSpace: 'pre-wrap', fontSize: 14, lineHeight: 1.7 }}>
-                {selected.result}
-              </div>
+              <AIResultReport
+                data={{
+                  result_json: selected.result,
+                  model: selected.model,
+                  tokens_used: selected.tokens_used,
+                  id: selected.id,
+                }}
+                title="Saved AI Analysis"
+              />
             </div>
             <div className="modal-actions">
               <button className="btn btn-secondary" onClick={() => setSelected(null)}>Close</button>

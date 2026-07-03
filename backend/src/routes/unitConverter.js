@@ -79,7 +79,9 @@ function convert(value, fromUnit, toUnit) {
 
 router.post('/convert', auth, async (req, res) => {
   try {
-    const { value, fromUnit, toUnit } = req.body;
+    const value = req.body.value;
+    const fromUnit = req.body.fromUnit || req.body.from_unit;
+    const toUnit = req.body.toUnit || req.body.to_unit;
     if (value === undefined || !fromUnit || !toUnit) {
       return res.status(400).json({ error: 'value, fromUnit, and toUnit are required' });
     }

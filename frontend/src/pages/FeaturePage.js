@@ -4,23 +4,7 @@ import { FEATURES } from '../services/features';
 import { getItems, getItem, createItem, updateItem, deleteItem, analyzeWithAI, calculateDeclineCurve } from '../services/api';
 import { toast } from 'react-toastify';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
-function parseMarkdown(text) {
-  if (!text) return '';
-  let html = text
-    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gm, '<h2>$1</h2>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/^- (.*$)/gm, '<li>$1</li>')
-    .replace(/^(\d+)\. (.*$)/gm, '<li>$2</li>')
-    .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br/>');
-  if (!html.startsWith('<')) html = '<p>' + html + '</p>';
-  return html;
-}
+import AIResultReport from '../components/AIResultReport';
 
 export default function FeaturePage() {
   const { featureKey } = useParams();
@@ -280,7 +264,7 @@ export default function FeaturePage() {
                   </div>
                 )}
                 {aiAnalysis && (
-                  <div className="ai-analysis-content" dangerouslySetInnerHTML={{ __html: parseMarkdown(aiAnalysis) }} />
+                  <AIResultReport data={aiAnalysis} />
                 )}
               </div>
 

@@ -2,7 +2,9 @@ require('dotenv').config({ path: require('path').join(__dirname, '../../.env') }
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 
-const pool = new Pool({
+const pool = new Pool(process.env.DATABASE_URL ? {
+  connectionString: process.env.DATABASE_URL,
+} : {
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 5432,
   database: process.env.DB_NAME || 'oilgas_forecaster',
@@ -15,9 +17,13 @@ async function seed() {
 
   await pool.query(`
     DROP TABLE IF EXISTS users, wellhead_analytics, reservoir_simulation, decline_curves,
-    equipment_failure, environmental_compliance, production_forecasting, well_performance,
+    equipment_failure, environmental_compliance, production_forecasting, production_history, well_performance,
     drilling_operations, cost_analysis, pipeline_monitoring, water_management,
-    safety_incidents, gas_lift_optimization, alerts, field_notes CASCADE;
+    safety_incidents, gas_lift_optimization, alerts, alert_rules, field_notes, ai_analyses,
+    work_orders, asset_registry, maintenance_schedules, inspection_logs, compliance_permits,
+    crew_vendors, inventory_parts, documents, notification_center, app_settings,
+    well_master, production_targets, shift_handovers, approval_workflows,
+    integration_endpoints, operational_reports, audit_trail CASCADE;
 
     CREATE TABLE users (
       id SERIAL PRIMARY KEY,
@@ -133,6 +139,18 @@ async function seed() {
       risk_factor VARCHAR(50),
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE production_history (
+      id SERIAL PRIMARY KEY,
+      well_id INTEGER,
+      user_id INTEGER REFERENCES users(id),
+      recorded_at TIMESTAMP,
+      oil_bpd DECIMAL,
+      gas_mcfd DECIMAL,
+      water_bpd DECIMAL,
+      bhp DECIMAL,
+      created_at TIMESTAMP DEFAULT NOW()
     );
 
     CREATE TABLE well_performance (
@@ -291,6 +309,18 @@ async function seed() {
       updated_at TIMESTAMP DEFAULT NOW()
     );
 
+    CREATE TABLE alert_rules (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id),
+      metric VARCHAR(100) NOT NULL,
+      operator VARCHAR(10) NOT NULL,
+      threshold DECIMAL NOT NULL,
+      entity_type VARCHAR(100),
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
     CREATE TABLE field_notes (
       id SERIAL PRIMARY KEY,
       well_name VARCHAR(255) NOT NULL,
@@ -302,14 +332,275 @@ async function seed() {
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
     );
+
+    CREATE TABLE ai_analyses (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER,
+      endpoint VARCHAR(100),
+      entity_table VARCHAR(100),
+      entity_id INTEGER,
+      result TEXT,
+      tokens_used INTEGER,
+      model VARCHAR(100),
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE work_orders (
+      id SERIAL PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      well_name VARCHAR(255),
+      asset_tag VARCHAR(100),
+      priority VARCHAR(50) DEFAULT 'Medium',
+      status VARCHAR(50) DEFAULT 'Open',
+      assigned_to VARCHAR(255),
+      due_date DATE,
+      estimated_cost_usd DECIMAL(12,2),
+      description TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE asset_registry (
+      id SERIAL PRIMARY KEY,
+      asset_tag VARCHAR(100) NOT NULL,
+      asset_name VARCHAR(255) NOT NULL,
+      asset_type VARCHAR(100),
+      well_name VARCHAR(255),
+      manufacturer VARCHAR(255),
+      install_date DATE,
+      lifecycle_status VARCHAR(50) DEFAULT 'In Service',
+      criticality VARCHAR(50) DEFAULT 'Medium',
+      replacement_due_date DATE,
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE maintenance_schedules (
+      id SERIAL PRIMARY KEY,
+      task_name VARCHAR(255) NOT NULL,
+      asset_tag VARCHAR(100),
+      well_name VARCHAR(255),
+      maintenance_type VARCHAR(100),
+      frequency VARCHAR(100),
+      next_due_date DATE,
+      assigned_to VARCHAR(255),
+      status VARCHAR(50) DEFAULT 'Scheduled',
+      instructions TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE inspection_logs (
+      id SERIAL PRIMARY KEY,
+      inspection_type VARCHAR(100) NOT NULL,
+      site_name VARCHAR(255) NOT NULL,
+      well_name VARCHAR(255),
+      inspector VARCHAR(255),
+      inspection_date DATE,
+      status VARCHAR(50) DEFAULT 'Open',
+      findings TEXT,
+      corrective_action TEXT,
+      next_inspection_date DATE,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE compliance_permits (
+      id SERIAL PRIMARY KEY,
+      permit_number VARCHAR(100) NOT NULL,
+      permit_type VARCHAR(100) NOT NULL,
+      site_name VARCHAR(255),
+      agency VARCHAR(255),
+      status VARCHAR(50) DEFAULT 'Active',
+      issue_date DATE,
+      expiration_date DATE,
+      owner VARCHAR(255),
+      requirements TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE crew_vendors (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      organization_type VARCHAR(50) DEFAULT 'Crew',
+      role VARCHAR(100),
+      phone VARCHAR(50),
+      email VARCHAR(255),
+      status VARCHAR(50) DEFAULT 'Active',
+      certifications TEXT,
+      assigned_area VARCHAR(255),
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE inventory_parts (
+      id SERIAL PRIMARY KEY,
+      part_number VARCHAR(100) NOT NULL,
+      part_name VARCHAR(255) NOT NULL,
+      category VARCHAR(100),
+      quantity_on_hand INTEGER DEFAULT 0,
+      reorder_level INTEGER DEFAULT 0,
+      unit_cost_usd DECIMAL(12,2),
+      warehouse_location VARCHAR(255),
+      supplier VARCHAR(255),
+      status VARCHAR(50) DEFAULT 'Available',
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE documents (
+      id SERIAL PRIMARY KEY,
+      document_title VARCHAR(255) NOT NULL,
+      document_type VARCHAR(100),
+      related_entity VARCHAR(255),
+      owner VARCHAR(255),
+      status VARCHAR(50) DEFAULT 'Current',
+      effective_date DATE,
+      expiration_date DATE,
+      file_url TEXT,
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE notification_center (
+      id SERIAL PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      channel VARCHAR(50),
+      recipient VARCHAR(255),
+      severity VARCHAR(50) DEFAULT 'Medium',
+      status VARCHAR(50) DEFAULT 'Pending',
+      sent_at TIMESTAMP,
+      acknowledged_at TIMESTAMP,
+      related_record VARCHAR(255),
+      message TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE app_settings (
+      id SERIAL PRIMARY KEY,
+      setting_key VARCHAR(100) NOT NULL,
+      setting_group VARCHAR(100) NOT NULL,
+      setting_value TEXT,
+      description TEXT,
+      updated_by VARCHAR(255),
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE well_master (
+      id SERIAL PRIMARY KEY,
+      well_name VARCHAR(255) NOT NULL,
+      api_number VARCHAR(100),
+      field_name VARCHAR(255),
+      operator VARCHAR(255),
+      well_type VARCHAR(100),
+      status VARCHAR(50) DEFAULT 'Active',
+      spud_date DATE,
+      first_production_date DATE,
+      latitude DECIMAL(10,6),
+      longitude DECIMAL(10,6),
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE production_targets (
+      id SERIAL PRIMARY KEY,
+      well_name VARCHAR(255) NOT NULL,
+      target_month DATE NOT NULL,
+      oil_target_bpd DECIMAL(10,2),
+      gas_target_mcfd DECIMAL(10,2),
+      water_limit_bpd DECIMAL(10,2),
+      uptime_target_pct DECIMAL(5,2),
+      owner VARCHAR(255),
+      status VARCHAR(50) DEFAULT 'Draft',
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE shift_handovers (
+      id SERIAL PRIMARY KEY,
+      shift_date DATE NOT NULL,
+      shift_name VARCHAR(100),
+      outgoing_operator VARCHAR(255) NOT NULL,
+      incoming_operator VARCHAR(255),
+      area VARCHAR(255),
+      open_issues TEXT,
+      completed_work TEXT,
+      safety_notes TEXT,
+      status VARCHAR(50) DEFAULT 'Open',
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE approval_workflows (
+      id SERIAL PRIMARY KEY,
+      request_title VARCHAR(255) NOT NULL,
+      request_type VARCHAR(100) NOT NULL,
+      requested_by VARCHAR(255),
+      approver VARCHAR(255),
+      status VARCHAR(50) DEFAULT 'Pending',
+      priority VARCHAR(50) DEFAULT 'Medium',
+      due_date DATE,
+      related_record VARCHAR(255),
+      business_justification TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE integration_endpoints (
+      id SERIAL PRIMARY KEY,
+      integration_name VARCHAR(255) NOT NULL,
+      integration_type VARCHAR(100) NOT NULL,
+      endpoint_url TEXT,
+      auth_type VARCHAR(100),
+      status VARCHAR(50) DEFAULT 'Active',
+      last_sync_at TIMESTAMP,
+      owner VARCHAR(255),
+      retry_policy VARCHAR(255),
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE operational_reports (
+      id SERIAL PRIMARY KEY,
+      report_name VARCHAR(255) NOT NULL,
+      report_type VARCHAR(100) NOT NULL,
+      schedule VARCHAR(100),
+      owner VARCHAR(255),
+      status VARCHAR(50) DEFAULT 'Active',
+      last_run_at TIMESTAMP,
+      next_run_at TIMESTAMP,
+      delivery_channel VARCHAR(100),
+      description TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE audit_trail (
+      id SERIAL PRIMARY KEY,
+      action VARCHAR(50) NOT NULL,
+      entity_table VARCHAR(100) NOT NULL,
+      entity_id INTEGER,
+      actor VARCHAR(255),
+      summary TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
   `);
 
   console.log('Seeding users...');
   const passwordHash = await bcrypt.hash(process.env.DEFAULT_PASSWORD || 'admin123', 10);
-  await pool.query(
-    'INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3)',
+  const userResult = await pool.query(
+    'INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3) RETURNING id',
     [process.env.DEFAULT_EMAIL || 'admin@oilgas.com', passwordHash, 'Admin User']
   );
+  const adminUserId = userResult.rows[0].id;
 
   console.log('Seeding wellhead analytics (15 records)...');
   const wellheadData = [
@@ -458,6 +749,31 @@ async function seed() {
     await pool.query(
       'INSERT INTO production_forecasting (well_name, field_name, current_rate_bpd, forecast_period_months, predicted_rate_bpd, predicted_cumulative_bbl, confidence_pct, forecast_method, oil_price_usd, estimated_revenue_usd, risk_factor) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',
       f
+    );
+  }
+
+  console.log('Seeding production history (15 records)...');
+  const productionHistoryData = [
+    [1, '2024-09-01', 910, 1280, 165, 3220],
+    [1, '2024-10-01', 885, 1255, 172, 3185],
+    [1, '2024-11-01', 860, 1215, 180, 3125],
+    [2, '2024-09-01', 690, 1010, 205, 4075],
+    [2, '2024-10-01', 655, 995, 216, 4010],
+    [2, '2024-11-01', 620, 980, 224, 3965],
+    [3, '2024-09-01', 1180, 1510, 238, 3820],
+    [3, '2024-10-01', 1135, 1480, 246, 3750],
+    [3, '2024-11-01', 1105, 1450, 252, 3695],
+    [4, '2024-09-01', 420, 2580, 32, 2860],
+    [4, '2024-10-01', 400, 2530, 34, 2820],
+    [4, '2024-11-01', 382, 2495, 36, 2775],
+    [5, '2024-09-01', 560, 890, 244, 2210],
+    [5, '2024-10-01', 540, 870, 255, 2165],
+    [5, '2024-11-01', 522, 852, 263, 2110]
+  ];
+  for (const h of productionHistoryData) {
+    await pool.query(
+      'INSERT INTO production_history (well_id, user_id, recorded_at, oil_bpd, gas_mcfd, water_bpd, bhp) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+      [h[0], adminUserId, h[1], h[2], h[3], h[4], h[5]]
     );
   }
 
@@ -633,6 +949,435 @@ async function seed() {
     await pool.query(
       'INSERT INTO gas_lift_optimization (well_name, field_name, injection_rate_mcfd, injection_pressure_psi, oil_rate_before_bpd, oil_rate_after_bpd, gas_source, valve_count, deepest_valve_depth_ft, casing_pressure_psi, tubing_pressure_psi, glr_scf_bbl, optimization_status, cost_per_mcf_usd, incremental_revenue_usd) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)',
       g
+    );
+  }
+
+  console.log('Seeding alerts (15 records)...');
+  const alertsData = [
+    ['High Wellhead Pressure', 'wellhead_analytics', 'pressure_psi', '>', 3500, 'High'],
+    ['Low Flow Rate', 'wellhead_analytics', 'flow_rate_bpd', '<', 300, 'Medium'],
+    ['High Water Cut', 'wellhead_analytics', 'water_cut_pct', '>', 35, 'High'],
+    ['Critical Equipment Failure Risk', 'equipment_failure', 'failure_probability_pct', '>', 45, 'Critical'],
+    ['Low Equipment Health', 'equipment_failure', 'health_score', '<', 60, 'High'],
+    ['Environmental Penalty Exposure', 'environmental_compliance', 'penalty_amount', '>', 10000, 'High'],
+    ['Low Forecast Confidence', 'production_forecasting', 'confidence_pct', '<', 72, 'Medium'],
+    ['Pipeline Corrosion Warning', 'pipeline_monitoring', 'corrosion_rate_mpy', '>', 5, 'Critical'],
+    ['Pipeline Pressure Drop', 'pipeline_monitoring', 'current_pressure_psi', '<', 600, 'High'],
+    ['Water Recycling Low', 'water_management', 'recycled_pct', '<', 15, 'Medium'],
+    ['Water Treatment Cost High', 'water_management', 'cost_per_bbl_usd', '>', 2, 'Medium'],
+    ['Safety Lost Days', 'safety_incidents', 'days_lost', '>', 5, 'Critical'],
+    ['Gas Lift Revenue Opportunity', 'gas_lift_optimization', 'incremental_revenue_usd', '>', 400000, 'Medium'],
+    ['Cost Breakeven High', 'cost_analysis', 'breakeven_price_usd', '>', 50, 'High'],
+    ['Drilling Torque High', 'drilling_operations', 'torque_ft_lb', '>', 24000, 'High']
+  ];
+  for (const a of alertsData) {
+    await pool.query(
+      'INSERT INTO alerts (alert_name, table_name, field_name, operator, threshold_value, severity) VALUES ($1,$2,$3,$4,$5,$6)',
+      a
+    );
+  }
+
+  console.log('Seeding alert rules (15 records)...');
+  const alertRulesData = [
+    ['pressure_psi', '>', 3500, 'wellhead_analytics'],
+    ['flow_rate_bpd', '<', 300, 'wellhead_analytics'],
+    ['water_cut_pct', '>', 35, 'wellhead_analytics'],
+    ['failure_probability_pct', '>', 45, 'equipment_failure'],
+    ['health_score', '<', 60, 'equipment_failure'],
+    ['penalty_amount', '>', 10000, 'environmental_compliance'],
+    ['confidence_pct', '<', 72, 'production_forecasting'],
+    ['corrosion_rate_mpy', '>', 5, 'pipeline_monitoring'],
+    ['current_pressure_psi', '<', 600, 'pipeline_monitoring'],
+    ['recycled_pct', '<', 15, 'water_management'],
+    ['cost_per_bbl_usd', '>', 2, 'water_management'],
+    ['days_lost', '>', 5, 'safety_incidents'],
+    ['incremental_revenue_usd', '>', 400000, 'gas_lift_optimization'],
+    ['breakeven_price_usd', '>', 50, 'cost_analysis'],
+    ['torque_ft_lb', '>', 24000, 'drilling_operations']
+  ];
+  for (const r of alertRulesData) {
+    await pool.query(
+      'INSERT INTO alert_rules (user_id, metric, operator, threshold, entity_type) VALUES ($1,$2,$3,$4,$5)',
+      [adminUserId, r[0], r[1], r[2], r[3]]
+    );
+  }
+
+  console.log('Seeding field notes (15 records)...');
+  const fieldNotesData = [
+    ['Eagle Ford A-1', 'Observation', 'Pressure trend improving', 'Tubing pressure stabilized after choke optimization. Continue monitoring for 48 hours.', 'Maria Torres', 'Medium'],
+    ['Bakken B-3', 'Maintenance', 'Pump jack inspection complete', 'Rod string vibration observed. Recommend follow-up alignment check next week.', 'Jason Reed', 'High'],
+    ['Wolfcamp F-1', 'Observation', 'Strong post-workover response', 'Oil rate remains above expected type curve after cleanout. Water cut stable.', 'Nina Patel', 'Low'],
+    ['Marcellus C-7', 'Issue', 'Telemetry dropout', 'SCADA readings intermittent between 02:00 and 04:30. Field RTU reset completed.', 'Owen Clarke', 'Medium'],
+    ['Haynesville D-2', 'Issue', 'Shut-in review required', 'Well remains shut-in. Review restart economics and pressure build-up data.', 'Lena Ortiz', 'High'],
+    ['Spraberry E-5', 'Observation', 'Water cut elevated', 'Produced water trending above normal operating range. Check separator performance.', 'Caleb Brooks', 'High'],
+    ['Niobrara G-4', 'Maintenance', 'Valve greasing completed', 'Surface valves greased and cycled. No leaks found during pressure test.', 'Priya Shah', 'Low'],
+    ['Barnett H-2', 'Issue', 'Compressor vibration', 'Compressor vibration above baseline. Schedule bearing inspection.', 'Marcus Lee', 'High'],
+    ['Woodford I-6', 'General', 'Lease road repaired', 'Access road graded after rain. Heavy equipment can resume normal travel.', 'Sarah Nguyen', 'Low'],
+    ['Austin Chalk J-1', 'Observation', 'Gas rate variance', 'Gas rate showing intraday variability. Verify meter calibration.', 'Trevor Hall', 'Medium'],
+    ['Tuscaloosa K-3', 'Safety', 'High-pressure job briefing', 'Crew completed pre-job safety meeting for high-pressure test.', 'Alicia Moore', 'Medium'],
+    ['Monterey L-2', 'Maintenance', 'Tank battery inspection', 'No visible leaks. Secondary containment requires cleanup.', 'Ben Carter', 'Medium'],
+    ['Bone Spring M-4', 'Observation', 'Gas lift adjustment', 'Injection rate increased by 100 MCFD. Watch oil response over next 24 hours.', 'Diana Flores', 'Medium'],
+    ['Utica N-1', 'Safety', 'Noise monitoring', 'Compressor pad readings below threshold after barrier installation.', 'Evan Kim', 'Low'],
+    ['SCOOP O-5', 'Issue', 'Chemical pump low output', 'Chemical injection pump output below target. Suspect worn check valve.', 'Grace Miller', 'High']
+  ];
+  for (const n of fieldNotesData) {
+    await pool.query(
+      'INSERT INTO field_notes (well_name, note_type, title, content, author, priority) VALUES ($1,$2,$3,$4,$5,$6)',
+      n
+    );
+  }
+
+  const wells = ['Eagle Ford A-1', 'Bakken B-3', 'Wolfcamp F-1', 'Marcellus C-7', 'Haynesville D-2', 'Spraberry E-5', 'Niobrara G-4', 'Barnett H-2', 'Woodford I-6', 'Austin Chalk J-1', 'Tuscaloosa K-3', 'Monterey L-2', 'Bone Spring M-4', 'Utica N-1', 'SCOOP O-5'];
+  const techs = ['Maria Torres', 'Jason Reed', 'Nina Patel', 'Owen Clarke', 'Lena Ortiz', 'Caleb Brooks', 'Priya Shah', 'Marcus Lee', 'Sarah Nguyen', 'Trevor Hall', 'Alicia Moore', 'Ben Carter', 'Diana Flores', 'Evan Kim', 'Grace Miller'];
+
+  console.log('Seeding work orders (15 records)...');
+  for (let i = 0; i < 15; i += 1) {
+    await pool.query(
+      `INSERT INTO work_orders (title, well_name, asset_tag, priority, status, assigned_to, due_date, estimated_cost_usd, description)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        `${i % 3 === 0 ? 'Inspect' : i % 3 === 1 ? 'Repair' : 'Calibrate'} ${i % 2 === 0 ? 'pump package' : 'surface controls'}`,
+        wells[i],
+        `AST-${String(i + 1).padStart(3, '0')}`,
+        ['Low', 'Medium', 'High', 'Critical'][i % 4],
+        ['Open', 'Assigned', 'In Progress', 'Waiting Parts', 'Completed'][i % 5],
+        techs[i],
+        `2025-${String((i % 9) + 1).padStart(2, '0')}-${String((i % 24) + 5).padStart(2, '0')}`,
+        2500 + i * 825,
+        'Operational work order seeded for maintenance planning and field execution.'
+      ]
+    );
+  }
+
+  console.log('Seeding asset registry (15 records)...');
+  for (let i = 0; i < 15; i += 1) {
+    await pool.query(
+      `INSERT INTO asset_registry (asset_tag, asset_name, asset_type, well_name, manufacturer, install_date, lifecycle_status, criticality, replacement_due_date, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [
+        `AST-${String(i + 1).padStart(3, '0')}`,
+        `${['ESP', 'Compressor', 'Separator', 'Safety Valve', 'Flow Meter'][i % 5]} ${i + 1}`,
+        ['Pump', 'Compressor', 'Separator', 'Valve', 'Meter'][i % 5],
+        wells[i],
+        ['Schlumberger', 'Baker Hughes', 'Ariel', 'Emerson', 'NOV'][i % 5],
+        `202${i % 5}-${String((i % 9) + 1).padStart(2, '0')}-15`,
+        ['In Service', 'Maintenance', 'In Service', 'Planned', 'Retired'][i % 5],
+        ['Low', 'Medium', 'High', 'Critical'][i % 4],
+        `2026-${String((i % 9) + 1).padStart(2, '0')}-20`,
+        'Lifecycle record for asset tracking and replacement planning.'
+      ]
+    );
+  }
+
+  console.log('Seeding maintenance schedules (15 records)...');
+  for (let i = 0; i < 15; i += 1) {
+    await pool.query(
+      `INSERT INTO maintenance_schedules (task_name, asset_tag, well_name, maintenance_type, frequency, next_due_date, assigned_to, status, instructions)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        `${['Pump service', 'Valve inspection', 'Meter calibration', 'Compressor lube check', 'Separator cleaning'][i % 5]} - ${wells[i]}`,
+        `AST-${String(i + 1).padStart(3, '0')}`,
+        wells[i],
+        ['Preventive', 'Inspection', 'Calibration', 'Corrective', 'Regulatory'][i % 5],
+        ['Weekly', 'Monthly', 'Quarterly', 'Semiannual', 'Annual'][i % 5],
+        `2025-${String((i % 10) + 2).padStart(2, '0')}-${String((i % 20) + 8).padStart(2, '0')}`,
+        techs[i],
+        ['Scheduled', 'Due Soon', 'Overdue', 'In Progress', 'Completed'][i % 5],
+        'Follow manufacturer checklist, capture readings, and attach field notes after completion.'
+      ]
+    );
+  }
+
+  console.log('Seeding inspection logs (15 records)...');
+  for (let i = 0; i < 15; i += 1) {
+    await pool.query(
+      `INSERT INTO inspection_logs (inspection_type, site_name, well_name, inspector, inspection_date, status, findings, corrective_action, next_inspection_date)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        ['Safety', 'Environmental', 'Equipment', 'Pipeline', 'Tank Battery'][i % 5],
+        `${['Permian', 'Williston', 'Delaware', 'Appalachian', 'Gulf Coast'][i % 5]} Site ${i + 1}`,
+        wells[i],
+        techs[(i + 2) % techs.length],
+        `2024-${String((i % 9) + 3).padStart(2, '0')}-${String((i % 24) + 1).padStart(2, '0')}`,
+        ['Passed', 'Finding', 'Open', 'Closed', 'Failed'][i % 5],
+        i % 4 === 0 ? 'Minor housekeeping and labeling findings.' : 'Inspection completed with standard observations.',
+        i % 4 === 0 ? 'Assign field crew to close corrective action within 14 days.' : 'Continue routine monitoring.',
+        `2025-${String((i % 9) + 3).padStart(2, '0')}-${String((i % 24) + 1).padStart(2, '0')}`
+      ]
+    );
+  }
+
+  console.log('Seeding compliance permits (15 records)...');
+  for (let i = 0; i < 15; i += 1) {
+    await pool.query(
+      `INSERT INTO compliance_permits (permit_number, permit_type, site_name, agency, status, issue_date, expiration_date, owner, requirements)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        `PRM-${2025}-${String(i + 1).padStart(3, '0')}`,
+        ['Air', 'Water', 'Waste', 'Drilling', 'Flaring'][i % 5],
+        `${['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon'][i % 5]} Facility`,
+        ['EPA', 'Texas RRC', 'NDIC', 'PennDEP', 'CalGEM'][i % 5],
+        ['Active', 'Pending', 'Expiring Soon', 'Active', 'Suspended'][i % 5],
+        `2024-${String((i % 9) + 1).padStart(2, '0')}-01`,
+        `2025-${String((i % 9) + 3).padStart(2, '0')}-28`,
+        techs[(i + 4) % techs.length],
+        'Maintain logs, inspection evidence, emission records, and renewal packet before expiration.'
+      ]
+    );
+  }
+
+  console.log('Seeding crews & vendors (15 records)...');
+  for (let i = 0; i < 15; i += 1) {
+    await pool.query(
+      `INSERT INTO crew_vendors (name, organization_type, role, phone, email, status, certifications, assigned_area)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [
+        techs[i],
+        ['Crew', 'Vendor', 'Contractor', 'Operator', 'Inspector'][i % 5],
+        ['Lease Operator', 'Maintenance Tech', 'HSE Inspector', 'Electrician', 'Integrity Specialist'][i % 5],
+        `555-010${i}`,
+        `${techs[i].toLowerCase().replace(/\s+/g, '.')}@petroai.example`,
+        ['Active', 'On Call', 'Unavailable', 'Active', 'Inactive'][i % 5],
+        ['H2S, LOTO', 'Confined Space', 'First Aid, H2S', 'Electrical Safety', 'API 1169'][i % 5],
+        ['Permian', 'Williston', 'Delaware', 'Appalachian', 'Gulf Coast'][i % 5]
+      ]
+    );
+  }
+
+  console.log('Seeding inventory & parts (15 records)...');
+  for (let i = 0; i < 15; i += 1) {
+    await pool.query(
+      `INSERT INTO inventory_parts (part_number, part_name, category, quantity_on_hand, reorder_level, unit_cost_usd, warehouse_location, supplier, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        `PT-${String(i + 1).padStart(4, '0')}`,
+        ['Pressure transmitter', 'Valve kit', 'Pump seal', 'Flow meter', 'Chemical tote'][i % 5],
+        ['Sensor', 'Valve', 'Pump', 'Electrical', 'Chemical'][i % 5],
+        4 + i * 2,
+        6 + (i % 5),
+        125 + i * 73,
+        `Warehouse ${['A', 'B', 'C'][i % 3]}-${i + 1}`,
+        ['Emerson', 'Baker Hughes', 'NOV', 'Grainger', 'ChampionX'][i % 5],
+        ['Available', 'Low Stock', 'Available', 'Reserved', 'Backordered'][i % 5]
+      ]
+    );
+  }
+
+  console.log('Seeding documents (15 records)...');
+  for (let i = 0; i < 15; i += 1) {
+    await pool.query(
+      `INSERT INTO documents (document_title, document_type, related_entity, owner, status, effective_date, expiration_date, file_url, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        `${['Operating Procedure', 'Permit Evidence', 'Inspection Report', 'Equipment Manual', 'Vendor Contract'][i % 5]} ${i + 1}`,
+        ['Procedure', 'Permit', 'Inspection', 'Manual', 'Contract'][i % 5],
+        wells[i],
+        techs[(i + 5) % techs.length],
+        ['Current', 'Under Review', 'Current', 'Expired', 'Archived'][i % 5],
+        `2024-${String((i % 9) + 1).padStart(2, '0')}-10`,
+        `2026-${String((i % 9) + 1).padStart(2, '0')}-10`,
+        `https://example.com/documents/petroai-${i + 1}.pdf`,
+        'Document metadata seeded for controlled document workflow.'
+      ]
+    );
+  }
+
+  console.log('Seeding notifications (15 records)...');
+  for (let i = 0; i < 15; i += 1) {
+    await pool.query(
+      `INSERT INTO notification_center (title, channel, recipient, severity, status, sent_at, acknowledged_at, related_record, message)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        `${['High pressure alert', 'Maintenance due', 'Permit expiring', 'Low inventory', 'Inspection finding'][i % 5]} - ${wells[i]}`,
+        ['In-App', 'Email', 'Slack', 'PagerDuty', 'Webhook'][i % 5],
+        techs[i],
+        ['Low', 'Medium', 'High', 'Critical'][i % 4],
+        ['Sent', 'Acknowledged', 'Pending', 'Escalated', 'Failed'][i % 5],
+        `2025-01-${String((i % 24) + 1).padStart(2, '0')} 08:00:00`,
+        i % 3 === 0 ? null : `2025-01-${String((i % 24) + 1).padStart(2, '0')} 09:15:00`,
+        `WO-${i + 1}`,
+        'Notification seeded for delivery and acknowledgement tracking.'
+      ]
+    );
+  }
+
+  console.log('Seeding settings (15 records)...');
+  const settingsData = [
+    ['default_pressure_unit', 'Units', 'psi', 'Default pressure display unit'],
+    ['default_volume_unit', 'Units', 'bbl', 'Default liquid volume display unit'],
+    ['high_pressure_threshold', 'Production', '3500', 'High-pressure review threshold'],
+    ['water_cut_warning_pct', 'Production', '35', 'Water cut warning percentage'],
+    ['maintenance_due_window_days', 'Maintenance', '14', 'Days before due date to flag PM work'],
+    ['critical_alert_channel', 'Alerts', 'PagerDuty', 'Primary channel for critical alerts'],
+    ['alert_ack_sla_minutes', 'Alerts', '30', 'Acknowledgement SLA for high severity alerts'],
+    ['permit_renewal_notice_days', 'Compliance', '60', 'Days before expiration to notify permit owner'],
+    ['document_retention_years', 'Compliance', '7', 'Document retention period'],
+    ['inventory_low_stock_multiplier', 'Maintenance', '1.25', 'Low stock factor against reorder point'],
+    ['rbac_delete_requires_admin', 'Security', 'true', 'Require admin role for destructive actions'],
+    ['audit_log_retention_days', 'Security', '365', 'Audit trail retention period'],
+    ['scada_poll_interval_seconds', 'Integrations', '60', 'SCADA polling interval'],
+    ['webhook_retry_count', 'Integrations', '3', 'Webhook retry attempts'],
+    ['field_offline_sync_hours', 'Integrations', '12', 'Maximum offline field sync window']
+  ];
+  for (const s of settingsData) {
+    await pool.query(
+      'INSERT INTO app_settings (setting_key, setting_group, setting_value, description, updated_by) VALUES ($1,$2,$3,$4,$5)',
+      [s[0], s[1], s[2], s[3], 'Admin User']
+    );
+  }
+
+  console.log('Seeding well master data (15 records)...');
+  for (let i = 0; i < 15; i += 1) {
+    await pool.query(
+      `INSERT INTO well_master (well_name, api_number, field_name, operator, well_type, status, spud_date, first_production_date, latitude, longitude, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+      [
+        wells[i],
+        `42-${String(100 + i).padStart(3, '0')}-${String(20000 + i)}`,
+        ['Permian Basin', 'Williston Basin', 'Delaware Basin', 'Appalachian', 'Gulf Coast'][i % 5],
+        ['PetroAI Operating', 'Summit Energy', 'Frontier Resources', 'Blue Ridge E&P', 'Canyon Oil'][i % 5],
+        ['Horizontal', 'Vertical', 'Directional', 'Injection', 'Disposal'][i % 5],
+        ['Active', 'Active', 'Shut-in', 'Drilling', 'Completed'][i % 5],
+        `202${i % 5}-${String((i % 9) + 1).padStart(2, '0')}-05`,
+        `202${i % 5}-${String((i % 9) + 2).padStart(2, '0')}-15`,
+        31.1 + i * 0.17,
+        -102.2 - i * 0.13,
+        'Master well record seeded for normalized cross-module references.'
+      ]
+    );
+  }
+
+  console.log('Seeding production targets (15 records)...');
+  for (let i = 0; i < 15; i += 1) {
+    await pool.query(
+      `INSERT INTO production_targets (well_name, target_month, oil_target_bpd, gas_target_mcfd, water_limit_bpd, uptime_target_pct, owner, status, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        wells[i],
+        `2025-${String((i % 12) + 1).padStart(2, '0')}-01`,
+        450 + i * 42,
+        800 + i * 120,
+        180 + i * 18,
+        92 + (i % 6),
+        techs[i],
+        ['Draft', 'Approved', 'Active', 'Met', 'Missed'][i % 5],
+        'Monthly production target seeded for plan versus actual review.'
+      ]
+    );
+  }
+
+  console.log('Seeding shift handovers (15 records)...');
+  for (let i = 0; i < 15; i += 1) {
+    await pool.query(
+      `INSERT INTO shift_handovers (shift_date, shift_name, outgoing_operator, incoming_operator, area, open_issues, completed_work, safety_notes, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        `2025-01-${String((i % 24) + 1).padStart(2, '0')}`,
+        ['Day Shift', 'Night Shift', 'Swing Shift'][i % 3],
+        techs[i],
+        techs[(i + 1) % techs.length],
+        ['Permian', 'Williston', 'Delaware', 'Appalachian', 'Gulf Coast'][i % 5],
+        i % 3 === 0 ? 'Monitor compressor vibration and one open work order.' : 'No critical open issues.',
+        'Completed routine rounds, checked alarms, and updated field notes.',
+        i % 4 === 0 ? 'Review hot-work area before next shift.' : 'No new safety issues reported.',
+        ['Open', 'Submitted', 'Reviewed', 'Closed'][i % 4]
+      ]
+    );
+  }
+
+  console.log('Seeding approval workflows (15 records)...');
+  for (let i = 0; i < 15; i += 1) {
+    await pool.query(
+      `INSERT INTO approval_workflows (request_title, request_type, requested_by, approver, status, priority, due_date, related_record, business_justification)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        `${['Approve work order', 'Capital spend request', 'Data export approval', 'Permit change review', 'Record delete request'][i % 5]} ${i + 1}`,
+        ['Work Order', 'Capital Spend', 'Data Export', 'Compliance Change', 'Record Delete'][i % 5],
+        techs[i],
+        techs[(i + 3) % techs.length],
+        ['Pending', 'Approved', 'Needs Info', 'Rejected', 'Pending'][i % 5],
+        ['Low', 'Medium', 'High', 'Critical'][i % 4],
+        `2025-02-${String((i % 24) + 1).padStart(2, '0')}`,
+        `REF-${i + 1}`,
+        'Approval seeded to demonstrate controlled operational governance.'
+      ]
+    );
+  }
+
+  console.log('Seeding integrations & webhooks (15 records)...');
+  for (let i = 0; i < 15; i += 1) {
+    await pool.query(
+      `INSERT INTO integration_endpoints (integration_name, integration_type, endpoint_url, auth_type, status, last_sync_at, owner, retry_policy, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        `${['SCADA Feed', 'Slack Alerts', 'PagerDuty Critical', 'ERP Work Orders', 'Data Lake Export'][i % 5]} ${i + 1}`,
+        ['SCADA', 'Slack', 'PagerDuty', 'ERP', 'Data Lake'][i % 5],
+        `https://integrations.example.com/petroai/${i + 1}`,
+        ['API Key', 'OAuth', 'API Key', 'Basic', 'mTLS'][i % 5],
+        ['Active', 'Testing', 'Failed', 'Paused', 'Active'][i % 5],
+        `2025-01-${String((i % 24) + 1).padStart(2, '0')} 07:30:00`,
+        techs[(i + 6) % techs.length],
+        'Retry 3 times with exponential backoff',
+        'Integration endpoint seeded for external system connectivity tracking.'
+      ]
+    );
+  }
+
+  console.log('Seeding operational reports (15 records)...');
+  for (let i = 0; i < 15; i += 1) {
+    await pool.query(
+      `INSERT INTO operational_reports (report_name, report_type, schedule, owner, status, last_run_at, next_run_at, delivery_channel, description)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        `${['Daily Production', 'Maintenance Backlog', 'Compliance Deadline', 'Inventory Reorder', 'Executive Scorecard'][i % 5]} Report ${i + 1}`,
+        ['Production', 'Maintenance', 'Compliance', 'Inventory', 'Executive'][i % 5],
+        ['Daily', 'Weekly', 'Monthly', 'Weekly', 'Monthly'][i % 5],
+        techs[(i + 8) % techs.length],
+        ['Active', 'Active', 'Paused', 'Failed', 'Draft'][i % 5],
+        `2025-01-${String((i % 24) + 1).padStart(2, '0')} 06:00:00`,
+        `2025-02-${String((i % 24) + 1).padStart(2, '0')} 06:00:00`,
+        ['Email', 'In-App', 'Slack', 'SFTP', 'Download'][i % 5],
+        'Scheduled operational report seeded for reporting workflow.'
+      ]
+    );
+  }
+
+  console.log('Seeding audit trail (15 records)...');
+  for (let i = 0; i < 15; i += 1) {
+    await pool.query(
+      'INSERT INTO audit_trail (action, entity_table, entity_id, actor, summary) VALUES ($1,$2,$3,$4,$5)',
+      [
+        ['CREATE', 'UPDATE', 'DELETE', 'APPROVE', 'EXPORT'][i % 5],
+        ['work_orders', 'asset_registry', 'maintenance_schedules', 'compliance_permits', 'documents'][i % 5],
+        i + 1,
+        techs[i],
+        `Seeded audit event ${i + 1} for operations governance review.`
+      ]
+    );
+  }
+
+  console.log('Seeding AI analysis history (15 records)...');
+  const aiHistoryData = [
+    ['/ai/analyze/wellhead', 'wellhead_analytics', 1, 'Wellhead pressure is stable but close to high-pressure review threshold. Recommendation: continue choke monitoring and validate gauge calibration. Risks: pressure excursion, separator load increase. Next steps: review last 72 hours and confirm field readings.', 842, 'anthropic/claude-haiku-4.5'],
+    ['/ai/analyze/equipment', 'equipment_failure', 4, 'Compressor health shows elevated failure risk due to high vibration and temperature. Recommendation: schedule bearing inspection and order critical spares. Risks: unplanned downtime, gas handling constraint. Next steps: maintenance window within 7 days.', 911, 'anthropic/claude-haiku-4.5'],
+    ['/ai/analyze/environmental', 'environmental_compliance', 3, 'CO2 emissions exceed configured threshold. Recommendation: review capture options and prioritize corrective action. Risks: penalty exposure and audit finding. Next steps: assign remediation owner and update inspection plan.', 776, 'anthropic/claude-haiku-4.5'],
+    ['/ai/analyze/forecast', 'production_forecasting', 10, 'Forecast confidence is low for Utica N-1 due to volatility and long horizon. Recommendation: rerun with updated production history and pressure data. Risks: reserve overstatement. Next steps: compare type curve and recent actuals.', 688, 'anthropic/claude-haiku-4.5'],
+    ['/ai/analyze/pipeline', 'pipeline_monitoring', 8, 'Niobrara lateral integrity is critical due to high corrosion trend. Recommendation: immediate inspection and pressure reduction review. Risks: leak, forced outage. Next steps: dispatch integrity crew and prepare repair plan.', 958, 'anthropic/claude-haiku-4.5'],
+    ['/ai/analyze/water', 'water_management', 10, 'Produced water trucking cost is high and recycling rate is zero. Recommendation: evaluate temporary treatment skid and disposal alternatives. Risks: margin erosion. Next steps: compare per-barrel disposal cost by route.', 744, 'anthropic/claude-haiku-4.5'],
+    ['/ai/analyze/safety', 'safety_incidents', 8, 'Confined-space incident indicates critical procedural gap. Recommendation: refresh entry permits, ventilation testing, and rescue readiness. Risks: repeat severe event. Next steps: verify training records and audit equipment.', 1002, 'anthropic/claude-haiku-4.5'],
+    ['/ai/analyze/gas-lift', 'gas_lift_optimization', 3, 'Gas lift optimization appears economically attractive with strong incremental revenue. Recommendation: preserve current injection setting and monitor GLR. Risks: over-injection and compressor constraint. Next steps: weekly rate review.', 691, 'anthropic/claude-haiku-4.5'],
+    ['/ai/analyze/cost', 'cost_analysis', 15, 'Haynesville D-2 economics are unfavorable at current production state. Recommendation: evaluate restart case against shut-in maintenance cost. Risks: negative margin continuation. Next steps: update price deck and workover estimate.', 812, 'anthropic/claude-haiku-4.5'],
+    ['/ai/analyze/drilling', 'drilling_operations', 14, 'Tuscaloosa drilling torque and mud weight need close attention. Recommendation: review hydraulics and wellbore stability model. Risks: stuck pipe, NPT. Next steps: run torque and drag model before next stand.', 923, 'anthropic/claude-haiku-4.5'],
+    ['/ai/analyze/performance', 'well_performance', 13, 'Monterey L-2 has low efficiency driven by high water cut. Recommendation: assess lift method and water shutoff options. Risks: rising disposal cost. Next steps: review zonal contribution and pump curve.', 799, 'anthropic/claude-haiku-4.5'],
+    ['/ai/analyze/reservoir', 'reservoir_simulation', 11, 'Thermal recovery assumptions require validation for Monterey Shale. Recommendation: update reservoir model with latest saturation data. Risks: recovery factor uncertainty. Next steps: run sensitivity scenarios.', 734, 'anthropic/claude-haiku-4.5'],
+    ['/ai/analyze/decline-curve', 'decline_curves', 2, 'Bakken B-3 decline is steeper than expected. Recommendation: inspect artificial lift and compare offset wells. Risks: earlier economic limit. Next steps: run hyperbolic and exponential fit comparison.', 866, 'anthropic/claude-haiku-4.5'],
+    ['/ai/analyze/production-anomaly', 'production_history', 3, 'Recent production history shows oil-rate drop with pressure decline. Recommendation: check choke setting, sand production, and pump performance. Risks: mechanical restriction. Next steps: inspect surface equipment.', 701, 'anthropic/claude-haiku-4.5'],
+    ['/ai/analyze/multi-well-portfolio', 'production_history', null, 'Portfolio review identifies Wolfcamp F-1 and Eagle Ford A-1 as strongest near-term contributors. Recommendation: protect uptime on top wells and defer low-return work. Risks: concentration of production exposure.', 940, 'anthropic/claude-haiku-4.5']
+  ];
+  for (const ai of aiHistoryData) {
+    await pool.query(
+      'INSERT INTO ai_analyses (user_id, endpoint, entity_table, entity_id, result, tokens_used, model) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+      [adminUserId, ai[0], ai[1], ai[2], ai[3], ai[4], ai[5]]
     );
   }
 

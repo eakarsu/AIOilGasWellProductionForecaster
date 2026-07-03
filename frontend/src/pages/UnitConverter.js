@@ -6,8 +6,8 @@ import { toast } from 'react-toastify';
 const UNIT_CATEGORIES = {
   Pressure: ['PSI', 'bar', 'kPa', 'atm'],
   Temperature: ['Fahrenheit', 'Celsius', 'Kelvin'],
-  Volume: ['barrels', 'gallons', 'liters', 'cubic_meters'],
-  'Flow Rate': ['BPD', 'GPM', 'm3_per_day', 'liters_per_min'],
+  Volume: ['barrels', 'gallons', 'liters', 'cubic meters'],
+  'Flow Rate': ['BPD', 'GPM', 'm3/day', 'liters/min'],
   Length: ['feet', 'meters', 'inches', 'centimeters'],
   Weight: ['pounds', 'kilograms', 'tons'],
 };
@@ -62,8 +62,8 @@ export default function UnitConverter() {
     try {
       const { data } = await convertUnit({
         category,
-        from_unit: fromUnit,
-        to_unit: toUnit,
+        fromUnit,
+        toUnit,
         value: parseFloat(inputValue),
       });
       setResult(data);

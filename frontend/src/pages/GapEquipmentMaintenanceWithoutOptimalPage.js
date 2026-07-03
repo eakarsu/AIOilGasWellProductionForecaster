@@ -2,6 +2,8 @@
 // Gap (AI): Equipment maintenance without '/optimal
 // Equipment maintenance without /optimal-maintenance-window (balance uptime vs. reliability)
 import React, { useState } from 'react';
+import AIResultReport from '../components/AIResultReport';
+import { getAdvancedPresets } from '../services/advancedPresets';
 
 export default function GapEquipmentMaintenanceWithoutOptimalPage() {
   const [input, setInput] = useState('');
@@ -9,20 +11,7 @@ export default function GapEquipmentMaintenanceWithoutOptimalPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const sampleRequests = [
-      {
-          "label": "Scenario",
-          "value": "Run Equipment maintenance without '/optimal for a realistic customer case.\nContext: A mid-market operations team is under deadline pressure and needs an actionable recommendation.\nGoal: identify the best next steps, risks, assumptions, and expected business impact.\nOutput format: concise summary, prioritized actions, confidence level, and follow-up questions."
-      },
-      {
-          "label": "Data sample",
-          "value": "Analyze this Equipment maintenance without '/optimal data sample.\nRecords:\n- Item A: high priority, owner unassigned, due this week, customer impact high\n- Item B: medium priority, owner assigned, blocked by missing information\n- Item C: low priority, recurring pattern, possible automation candidate\nReturn structured findings, anomalies, recommendations, and a short implementation plan."
-      },
-      {
-          "label": "Executive review",
-          "value": "Prepare an executive review for Equipment maintenance without '/optimal.\nAudience: business owner and operations manager.\nInclude: what happened, why it matters, financial or operational impact, risks, and three decisions needed today.\nTone: professional, direct, and implementation-focused."
-      }
-  ];
+  const sampleRequests = getAdvancedPresets("Equipment maintenance without '/optimal", "Equipment maintenance without /optimal-maintenance-window (balance uptime vs. reliability)");
 
   const applySampleRequest = (value) => {
     setInput(value);
@@ -91,10 +80,7 @@ export default function GapEquipmentMaintenanceWithoutOptimalPage() {
         <div style={{ background: '#7f1d1d', color: '#fecaca', padding: 12, borderRadius: 6, marginBottom: 12 }}>{error}</div>
       )}
       {result && (
-        <div style={{ background: '#0b1220', padding: 16, borderRadius: 8 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Result</h3>
-          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'monospace', fontSize: 12, color: '#d1d5db' }}>{JSON.stringify(result, null, 2)}</pre>
-        </div>
+        <AIResultReport data={result} />
       )}
     </div>
   );

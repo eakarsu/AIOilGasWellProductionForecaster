@@ -577,4 +577,97 @@ Return a structured report:
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+const OPERATION_AI_RESOURCES = {
+  'work-orders': { table: 'work_orders', title: 'Work Order' },
+  assets: { table: 'asset_registry', title: 'Asset Registry Record' },
+  maintenance: { table: 'maintenance_schedules', title: 'Maintenance Schedule' },
+  inspections: { table: 'inspection_logs', title: 'Inspection Log' },
+  permits: { table: 'compliance_permits', title: 'Compliance Permit' },
+  'crews-vendors': { table: 'crew_vendors', title: 'Crew or Vendor Record' },
+  inventory: { table: 'inventory_parts', title: 'Inventory Part' },
+  documents: { table: 'documents', title: 'Document Record' },
+  notifications: { table: 'notification_center', title: 'Notification' },
+  settings: { table: 'app_settings', title: 'Application Setting' },
+  wells: { table: 'well_master', title: 'Well Master Record' },
+  targets: { table: 'production_targets', title: 'Production Target' },
+  handovers: { table: 'shift_handovers', title: 'Shift Handover' },
+  approvals: { table: 'approval_workflows', title: 'Approval Workflow' },
+  integrations: { table: 'integration_endpoints', title: 'Integration Endpoint' },
+  reports: { table: 'operational_reports', title: 'Operational Report' },
+  'audit-trail': { table: 'audit_trail', title: 'Audit Trail Event' },
+};
+
+const OPERATION_AI_ACTIONS = {
+  summary: 'Prepare an executive summary of this record and explain why it matters operationally.',
+  next_actions: 'Recommend the next operational actions, owners, sequencing, and verification steps.',
+  risk: 'Assess operational, safety, compliance, financial, and schedule risk. Provide severity and rationale.',
+  prioritization: 'Prioritize this work and explain urgency, dependencies, and recommended owner.',
+  completion_notes: 'Draft professional completion notes and closeout criteria for this work.',
+  lifecycle: 'Assess lifecycle risk, remaining useful life indicators, and replacement timing.',
+  replacement: 'Recommend a replacement or refurbishment plan with operational rationale.',
+  maintenance_strategy: 'Recommend a maintenance strategy based on condition, criticality, and operational exposure.',
+  optimize_schedule: 'Optimize the schedule and explain downtime, crew, parts, and reliability tradeoffs.',
+  draft_work_order: 'Draft a field-ready work order plan from this record, including scope, parts, safety checks, and acceptance criteria.',
+  corrective_action: 'Draft corrective actions with owner, due date logic, evidence required, and closure criteria.',
+  renewal_checklist: 'Create a permit renewal checklist with evidence, owner, timing, and regulatory risk.',
+  evidence_request: 'Identify evidence gaps and draft a practical evidence request.',
+  vendor_fit: 'Assess whether this crew or vendor is a good fit for assignment and identify constraints.',
+  reorder: 'Recommend reorder quantity, urgency, alternatives, and operational impact of stockout.',
+  criticality: 'Score criticality and explain production, safety, compliance, and downtime impact.',
+  supplier_risk: 'Assess supplier risk and recommend mitigation or alternate sourcing.',
+  document_review: 'Review document status, expiration risk, ownership, and required updates.',
+  escalation: 'Recommend escalation path, timing, recipients, and acknowledgement expectations.',
+  config_review: 'Review configuration quality, control implications, and change-management steps.',
+  data_quality: 'Assess data quality and identify missing, inconsistent, or high-risk master-data fields.',
+  target_variance: 'Review whether the target is realistic and identify miss risk and recovery levers.',
+  handover_brief: 'Create a professional shift handover brief with open issues, safety concerns, and next-shift priorities.',
+  decision_brief: 'Prepare a decision brief with recommendation, benefits, risks, and approval conditions.',
+  troubleshooting: 'Recommend troubleshooting steps, likely root causes, retry plan, and escalation triggers.',
+  report_brief: 'Assess report usefulness, delivery risk, audience, cadence, and improvement actions.',
+  audit_review: 'Review the audit event for control risk, governance implications, and follow-up actions.',
+};
+
+router.post('/operations/:resource/:id/:action', auth, aiRateLimiter, async (req, res) => {
+  try {
+    if (!requireKey(res)) return;
+    const resource = OPERATION_AI_RESOURCES[req.params.resource];
+    const actionInstruction = OPERATION_AI_ACTIONS[req.params.action];
+    if (!resource || !actionInstruction) {
+      return res.status(404).json({ error: 'Unsupported operation AI action' });
+    }
+
+    const result = await pool.query(`SELECT * FROM ${resource.table} WHERE id=$1`, [req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ error: 'Record not found' });
+    const record = result.rows[0];
+
+    const prompt = `You are assisting an oil and gas operations team with a non-AI workflow record.
+
+Record type: ${resource.title}
+Requested action: ${actionInstruction}
+Record data:
+${JSON.stringify(record, null, 2)}
+
+Return a polished professional report, not JSON.
+Do not use markdown code fences.
+Use clear sections with short headings and concise bullets.
+Include practical recommendations that a field supervisor or operations manager can act on.
+Do not claim you changed system data. If a related record should be created or updated, present it as a draft recommendation requiring user confirmation.`;
+
+    const { content, tokensUsed, model } = await queryOpenRouter(
+      prompt,
+      'You are a senior oil and gas operations advisor. Return professional prose only. Never return raw JSON, code fences, or machine-readable schemas unless explicitly asked.'
+    );
+    await persistAiResult({
+      userId: req.user.id,
+      endpoint: `/ai/operations/${req.params.resource}/${req.params.action}`,
+      entityTable: resource.table,
+      entityId: record.id,
+      result: content,
+      tokensUsed,
+      model,
+    });
+    res.json({ analysis: content, action: req.params.action, resource: req.params.resource, model });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;
