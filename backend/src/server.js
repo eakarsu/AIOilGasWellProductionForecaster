@@ -3,17 +3,20 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const crypto = require('crypto');
+const {validateRuntime}=require('./governance/runtime');
+const {createProviderGate}=require('./governance/providerGate');
+const governanceRouter=require('./governance/router');
+validateRuntime();
 
 const app = express();
 const PORT = process.env.BACKEND_PORT || 4000;
 
 // Security
 app.use(helmet());
-app.use(cors({
-  origin: process.env.CLIENT_URL || ['http://localhost:3000', 'http://localhost:3500'],
-  credentials: true
-}));
+const allowedOrigins=String(process.env.CORS_ORIGINS||process.env.CLIENT_URL||'http://localhost:3000,http://localhost:3500').split(',').map(v=>v.trim()).filter(Boolean);
+app.use(cors({origin:(origin,cb)=>!origin||allowedOrigins.includes(origin)?cb(null,true):cb(new Error('Origin not allowed by CORS')),credentials:true}));
 app.use(express.json());
+app.use(createProviderGate(['/api/ai','/api/chatbot','/api/gap','/api/cf-agentic-well-optimization','/api/cf-decline-curve-ensemble-modeling','/api/cf-sensor-anomaly-streaming','/api/cf-environmental-compliance-assistant','/api/cf-cross-operator-benchmarking']));
 
 // Request ID middleware
 app.use((req, res, next) => {
@@ -55,6 +58,7 @@ app.get('/api/health', (req, res) => {
 
 // === Custom Views mount (must be before 404/error handler) ===
 app.use('/api/custom-views', require('./routes/customViews'));
+app.use('/api/governed-well-forecasts',governanceRouter);
 
 // Generic error handler
 app.use((err, req, res, next) => {

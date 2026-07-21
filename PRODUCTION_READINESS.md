@@ -1,0 +1,5 @@
+# Governed well production forecast
+The durable path is `/api/governed-well-forecasts`. It versions assets, production history, reservoir models, constraints, telemetry, forecast/backtest evidence, operator/safety review, approved decisions, observed execution, exception recovery, asset lifecycle, and realized outcomes with idempotency and immutable provenance.
+Apply `backend/migrations/001_governed_well_forecast.sql` separately. Telemetry, ERP/WMS/TMS, read-only SCADA, GIS/weather, maintenance, notifications, and geology/reservoir adapters remain unconfigured until credentials, timestamp/retry/offline contracts, historical fixtures, and site approval exist. Generated/provider routes are quarantined.
+Stale events, invalid error bounds, incomplete offline buffers, or unverified safety limits force manual engineering fallback. The service emits no well-control, lift/injection, crew-dispatch, safety, or environmental command. Hardware and professional engineering gates fail closed.
+Use `.env.example`; run `node --test backend/src/governance/*.test.cjs` and `bash -n start.sh`. The launcher does not install, create, migrate, seed, or terminate unrelated processes.
