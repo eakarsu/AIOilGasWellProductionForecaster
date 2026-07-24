@@ -16,7 +16,7 @@ app.use(helmet());
 const allowedOrigins=String(process.env.CORS_ORIGINS||process.env.CLIENT_URL||'http://localhost:3000,http://localhost:3500').split(',').map(v=>v.trim()).filter(Boolean);
 app.use(cors({origin:(origin,cb)=>!origin||allowedOrigins.includes(origin)?cb(null,true):cb(new Error('Origin not allowed by CORS')),credentials:true}));
 app.use(express.json());
-app.use(createProviderGate(['/api/ai','/api/chatbot','/api/gap','/api/cf-agentic-well-optimization','/api/cf-decline-curve-ensemble-modeling','/api/cf-sensor-anomaly-streaming','/api/cf-environmental-compliance-assistant','/api/cf-cross-operator-benchmarking']));
+app.use(createProviderGate(['/api/chatbot','/api/gap','/api/cf-agentic-well-optimization','/api/cf-decline-curve-ensemble-modeling','/api/cf-sensor-anomaly-streaming','/api/cf-environmental-compliance-assistant','/api/cf-cross-operator-benchmarking']));
 
 // Request ID middleware
 app.use((req, res, next) => {
