@@ -1,0 +1,121 @@
+[
+  {
+    "name": "CFAgenticWellOptimizationPage",
+    "id": "cf-agentic-well-optimization",
+    "title": "Agentic well optimization",
+    "description": "Prepare a professional advisory report for agentic well optimization using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "CFCrossOperatorBenchmarkingPage",
+    "id": "cf-cross-operator-benchmarking",
+    "title": "Cross-operator benchmarking",
+    "description": "Prepare a professional advisory report for cross-operator benchmarking using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "CFDeclineCurveEnsembleModelingPage",
+    "id": "cf-decline-curve-ensemble-modeling",
+    "title": "Decline curve ensemble modeling",
+    "description": "Prepare a professional advisory report for decline curve ensemble modeling using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "CFEnvironmentalComplianceAssistantPage",
+    "id": "cf-environmental-compliance-assistant",
+    "title": "Environmental compliance assistant",
+    "description": "Prepare a professional advisory report for environmental compliance assistant using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "CFSensorAnomalyStreamingPage",
+    "id": "cf-sensor-anomaly-streaming",
+    "title": "Sensor anomaly streaming",
+    "description": "Prepare a professional advisory report for sensor anomaly streaming using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapEquipmentMaintenanceWithoutOptimalPage",
+    "id": "gap-equipment-maintenance-without-optimal",
+    "title": "Equipment maintenance without '/optimal",
+    "description": "Prepare a professional advisory report for equipment maintenance without '/optimal using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapLimitedMultiPage",
+    "id": "gap-limited-multi",
+    "title": "Limited multi",
+    "description": "Prepare a professional advisory report for limited multi using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapNoAssetLifecycleTrackingEquipmentPurchaseInsPage",
+    "id": "gap-no-asset-lifecycle-tracking-equipment-purchase-ins",
+    "title": "No asset lifecycle tracking (equipment purchase, installation, decommission dates)",
+    "description": "Prepare a professional advisory report for no asset lifecycle tracking (equipment purchase, installation, decommission dates) using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapNoIntegrationWithGeologicalPetrophysicalDatabPage",
+    "id": "gap-no-integration-with-geological-petrophysical-datab",
+    "title": "No integration with geological/petrophysical databases",
+    "description": "Prepare a professional advisory report for no integration with geological/petrophysical databases using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapNoMobileFieldPage",
+    "id": "gap-no-mobile-field",
+    "title": "No mobile/field",
+    "description": "Prepare a professional advisory report for no mobile/field using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapNoPreventiveMaintenanceSchedulingPage",
+    "id": "gap-no-preventive-maintenance-scheduling",
+    "title": "No preventive maintenance scheduling",
+    "description": "Prepare a professional advisory report for no preventive maintenance scheduling using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapNoRbacBeyondAuthPage",
+    "id": "gap-no-rbac-beyond-auth",
+    "title": "No RBAC beyond auth",
+    "description": "Prepare a professional advisory report for no rbac beyond auth using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapNoRealPage",
+    "id": "gap-no-real",
+    "title": "No real",
+    "description": "Prepare a professional advisory report for no real using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapNoWebhooksForAlertDeliveryPagerdutySlackPage",
+    "id": "gap-no-webhooks-for-alert-delivery-pagerduty-slack",
+    "title": "No webhooks for alert delivery (PagerDuty/Slack)",
+    "description": "Prepare a professional advisory report for no webhooks for alert delivery (pagerduty/slack) using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapPipelineMonitoringWithoutPipelinePage",
+    "id": "gap-pipeline-monitoring-without-pipeline",
+    "title": "Pipeline monitoring without '/pipeline",
+    "description": "Prepare a professional advisory report for pipeline monitoring without '/pipeline using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapProductionHistoryLoggedButNoProductionPage",
+    "id": "gap-production-history-logged-but-no-production",
+    "title": "Production history logged but no '/production",
+    "description": "Prepare a professional advisory report for production history logged but no '/production using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapSafetyIncidentsWithoutNearPage",
+    "id": "gap-safety-incidents-without-near",
+    "title": "Safety incidents without '/near",
+    "description": "Prepare a professional advisory report for safety incidents without '/near using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  }
+]

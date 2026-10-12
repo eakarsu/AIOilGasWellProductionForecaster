@@ -24,20 +24,20 @@ const TOOLS = [
 
 const DEFAULT_FORMS = {
   anomaly: {
-    well_id: '1',
+    well_id: '',
     recent_readings: '[{"date":"2025-01-01","oil_bpd":1200,"pressure_psi":2400,"water_cut_pct":18},{"date":"2025-01-02","oil_bpd":980,"pressure_psi":2180,"water_cut_pct":24}]',
     baseline: '{"oil_bpd_mean":1300,"pressure_mean":2450,"water_cut_pct_mean":18,"normal_variance_pct":8}',
     notes: 'Recent pressure and oil-rate decline after choke adjustment. Check for equipment restriction, artificial lift issue, or reservoir anomaly.',
   },
   pipeline: {
-    pipeline_id: '3',
+    pipeline_id: '',
     pressure_history: '[{"ts":"2025-01-01T08:00:00Z","psi":1450},{"ts":"2025-01-01T09:00:00Z","psi":1390},{"ts":"2025-01-01T10:00:00Z","psi":1215}]',
     flow_history: '[{"ts":"2025-01-01T08:00:00Z","bpd":8200},{"ts":"2025-01-01T09:00:00Z","bpd":7900},{"ts":"2025-01-01T10:00:00Z","bpd":7100}]',
     age_years: '18',
     last_inspection: '2024-09-15',
   },
   maintenance: {
-    asset_id: '7',
+    asset_id: '',
     asset_type: 'Electric Submersible Pump',
     production_schedule: '[{"date":"2025-02-01","production_priority":"high"},{"date":"2025-02-05","planned_rate_bpd":1150},{"date":"2025-02-08","planned_rate_bpd":900}]',
     weather_window: 'Low wind and clear access expected Feb 5-8; road access limited after Feb 10.',
@@ -84,6 +84,35 @@ const DEFAULT_FORMS = {
   },
 };
 
+const TOOL_FORMS = {
+  'production-anomaly': 'anomaly', 'pipeline-rupture': 'pipeline',
+  'maintenance-window': 'maintenance', 'near-miss': 'nearMiss',
+  'multi-well-portfolio': 'portfolio', 'sensor-anomaly-batch': 'sensor',
+  'asset-lifecycle': 'lifecycle',
+};
+const RECORD_KEYS = new Set(['well_id', 'pipeline_id', 'asset_id']);
+const SCENARIOS = [
+  { label: 'Baseline review', values: {} },
+  { label: 'Elevated risk', values: {
+    anomaly: { notes: 'Oil rate and pressure are falling; verify sensor calibration, lift performance, and the latest choke setting.' },
+    pipeline: { age_years: '25', last_inspection: '2024-03-12' },
+    maintenance: { weather_window: 'Storm risk limits safe access after the next 24 hours.', constraints: 'Protect the crew and maintain minimum production; replacement parts require approval.' },
+    nearMiss: { witness_count: '6', recent_similar_count: '4', osha_recordables_12mo: '2', crew_experience_yrs: '2' },
+    portfolio: { horizon_days: '30', ranking_metric: 'net_revenue' },
+    sensor: { window_minutes: '30', sensor_id: 'WH-14H-PT-02' },
+    lifecycle: { health_score: '41', operating_hours: '36000', replacement_cost_usd: '210000' },
+  } },
+  { label: 'Recovery plan', values: {
+    anomaly: { notes: 'Post-intervention review: compare recovered oil rate and pressure against baseline and check water cut.' },
+    pipeline: { age_years: '12', last_inspection: '2025-08-21' },
+    maintenance: { weather_window: 'Two clear days available for inspection and restart.', constraints: 'Coordinate shutdown with operations; verify parts and permits before restart.' },
+    nearMiss: { witness_count: '3', recent_similar_count: '1', osha_recordables_12mo: '0', crew_experience_yrs: '7' },
+    portfolio: { horizon_days: '180', ranking_metric: 'oil_bpd' },
+    sensor: { window_minutes: '120', sensor_id: 'WH-14H-PT-02' },
+    lifecycle: { health_score: '78', operating_hours: '19000', replacement_cost_usd: '185000' },
+  } },
+];
+
 export default function AIPredictivePage() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -100,6 +129,15 @@ export default function AIPredictivePage() {
   const [sensorForm, setSensorForm] = useState(DEFAULT_FORMS.sensor);
   const [lifecycleForm, setLifecycleForm] = useState(DEFAULT_FORMS.lifecycle);
 
+  const fillScenario = (scenario) => {
+    const formKey = TOOL_FORMS[activeTool];
+    const setters = { anomaly: setAnomalyForm, pipeline: setPipelineForm, maintenance: setMaintenanceForm,
+      nearMiss: setNearMissForm, portfolio: setPortfolioForm, sensor: setSensorForm, lifecycle: setLifecycleForm };
+    setters[formKey]((current) => ({ ...DEFAULT_FORMS[formKey], ...scenario.values[formKey],
+      ...Object.fromEntries(Object.keys(DEFAULT_FORMS[formKey]).filter((key) => RECORD_KEYS.has(key)).map((key) => [key, current[key]])) }));
+    setResult(null); setError('');
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -115,13 +153,6 @@ export default function AIPredictivePage() {
     setActiveTool(toolId);
     setResult(null);
     setError('');
-    if (toolId === 'production-anomaly') setAnomalyForm({ ...DEFAULT_FORMS.anomaly });
-    if (toolId === 'pipeline-rupture') setPipelineForm({ ...DEFAULT_FORMS.pipeline });
-    if (toolId === 'maintenance-window') setMaintenanceForm({ ...DEFAULT_FORMS.maintenance });
-    if (toolId === 'near-miss') setNearMissForm({ ...DEFAULT_FORMS.nearMiss });
-    if (toolId === 'multi-well-portfolio') setPortfolioForm({ ...DEFAULT_FORMS.portfolio });
-    if (toolId === 'sensor-anomaly-batch') setSensorForm({ ...DEFAULT_FORMS.sensor });
-    if (toolId === 'asset-lifecycle') setLifecycleForm({ ...DEFAULT_FORMS.lifecycle });
   };
 
   const run = async () => {
@@ -255,6 +286,11 @@ export default function AIPredictivePage() {
         </div>
 
         <div className="ai-predictive-panel">
+          <div className="ai-preset-bar"><strong>Fill all example fields</strong><div className="ai-actions">{SCENARIOS.map((scenario) =>
+            <button key={scenario.label} className="btn btn-secondary" type="button" disabled={loading} onClick={() => fillScenario(scenario)}>{scenario.label}</button>
+          )}</div></div>
+          {['production-anomaly', 'pipeline-rupture', 'maintenance-window'].includes(activeTool) &&
+            <p className="ai-field-help">Choose an existing record ID before running this analysis. Examples leave record references unchanged.</p>}
           {activeTool === 'production-anomaly' && (
             <>
               <h3>Production Anomaly Detection</h3>

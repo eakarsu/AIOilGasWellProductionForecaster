@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login } from '../services/api';
+import { login, demoLogin as requestDemoLogin } from '../services/api';
 import { toast } from 'react-toastify';
 
 export default function Login() {
@@ -25,9 +25,18 @@ export default function Login() {
     }
   };
 
-  const fillCredentials = () => {
-    setEmail(process.env.REACT_APP_DEMO_EMAIL || '');
-    setPassword(process.env.REACT_APP_DEMO_PASSWORD || '');
+  const demoLogin = async () => {
+    setLoading(true);
+    try {
+      const { data } = await requestDemoLogin();
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      navigate('/dashboard');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Demo login is unavailable');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -69,8 +78,8 @@ export default function Login() {
           </button>
         </form>
 
-        <button className="btn btn-fill-login" onClick={fillCredentials} type="button">
-          Auto Fill Demo Credentials
+        <button className="btn btn-fill-login" onClick={demoLogin} type="button" disabled={loading}>
+          Log In as Demo
         </button>
       </div>
     </div>

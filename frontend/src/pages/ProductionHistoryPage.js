@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import {
   getProductionHistory, createProductionHistory, deleteProductionHistory, importProductionHistoryCSV
 } from '../services/api';
+import { recordList } from '../services/recordList';
 
 export default function ProductionHistoryPage() {
   const navigate = useNavigate();
@@ -27,12 +28,8 @@ export default function ProductionHistoryPage() {
       const params = { page: p, limit: 20 };
       if (wid) params.well_id = wid;
       const { data } = await getProductionHistory(params);
-      if (data.data) {
-        setRecords(data.data);
-        setTotalPages(data.pagination.totalPages);
-      } else {
-        setRecords(data);
-      }
+      setRecords(recordList(data));
+      setTotalPages(data?.pagination?.totalPages || 1);
     } catch (err) {
       toast.error('Failed to load production history');
     } finally {

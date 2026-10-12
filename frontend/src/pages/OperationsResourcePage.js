@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { recordList } from '../services/recordList';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { analyzeOperationItem, createOperationItem, deleteOperationItem, getOperationItem, getOperationItems, updateOperationItem } from '../services/api';
@@ -58,7 +59,7 @@ export default function OperationsResourcePage() {
     setLoading(true);
     try {
       const { data } = await getOperationItems(resourceKey);
-      setItems(Array.isArray(data) ? data : []);
+      setItems(recordList(data));
     } catch (err) {
       toast.error(`Failed to load ${resource.title}`);
     } finally {

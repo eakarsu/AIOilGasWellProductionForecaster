@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getFieldNotes, getFieldNote, createFieldNote, updateFieldNote, deleteFieldNote } from '../services/api';
 import { toast } from 'react-toastify';
+import { recordList } from '../services/recordList';
 
 const NOTE_TYPES = ['Observation', 'Maintenance', 'Issue', 'General'];
 const PRIORITIES = ['Low', 'Medium', 'High'];
@@ -34,7 +35,7 @@ export default function FieldNotesPage() {
   const fetchNotes = useCallback(async () => {
     try {
       const { data } = await getFieldNotes();
-      setNotes(data);
+      setNotes(recordList(data));
     } catch (err) {
       toast.error('Failed to load field notes');
     } finally {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { getAlertRules, createAlertRule, updateAlertRule, deleteAlertRule, evaluateAlerts } from '../services/api';
+import { recordList } from '../services/recordList';
 
 const VALID_TABLES = [
   'wellhead_analytics', 'reservoir_simulation', 'decline_curves',
@@ -28,7 +29,7 @@ export default function AlertRulesPage() {
     setLoading(true);
     try {
       const { data } = await getAlertRules();
-      setRules(Array.isArray(data) ? data : data.data || []);
+      setRules(recordList(data));
     } catch (err) {
       toast.error('Failed to load rules');
     } finally {

@@ -20,6 +20,24 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Authenticate the already configured demo account without exposing its password.
+router.post('/demo-login', async (_req, res) => {
+  if (process.env.NODE_ENV === 'production' || !process.env.DEMO_EMAIL || !process.env.DEMO_PASSWORD) {
+    return res.status(503).json({ error: 'Demo login is not configured on this server.' });
+  }
+  try {
+    const result = await pool.query('SELECT * FROM users WHERE email = $1', [process.env.DEMO_EMAIL]);
+    const user = result.rows[0];
+    if (!user || !(await bcrypt.compare(process.env.DEMO_PASSWORD, user.password_hash))) {
+      return res.status(503).json({ error: 'The configured demo account is unavailable.' });
+    }
+    const token = jwt.sign({ id: user.id, email: user.email, name: user.name }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
+  } catch (_) {
+    res.status(503).json({ error: 'Demo login is unavailable.' });
+  }
+});
+
 router.get('/me', require('../middleware/auth'), async (req, res) => {
   try {
     const result = await pool.query('SELECT id, email, name FROM users WHERE id = $1', [req.user.id]);

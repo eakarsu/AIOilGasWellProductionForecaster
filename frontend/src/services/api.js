@@ -23,6 +23,7 @@ API.interceptors.response.use(
 );
 
 export const login = (email, password) => API.post('/auth/login', { email, password });
+export const demoLogin = () => API.post('/auth/demo-login');
 
 export const getItems = (endpoint) => API.get(endpoint);
 export const getItem = (endpoint, id) => API.get(`${endpoint}/${id}`);

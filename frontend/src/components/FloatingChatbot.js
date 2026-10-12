@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaPaperPlane, FaRobot, FaTimes } from 'react-icons/fa';
 import { sendChatbotMessage } from '../services/api';
+import AIResultReport from './AIResultReport';
 
 const EXAMPLES = [
   'Operations summary',
@@ -9,7 +10,6 @@ const EXAMPLES = [
   'Show low stock inventory',
   'Show expiring permits',
   'Search compressor in work orders',
-  'Update work order id 3 {"status":"Completed"}',
 ];
 
 export default function FloatingChatbot() {
@@ -79,7 +79,7 @@ export default function FloatingChatbot() {
 
           <div className="chatbot-examples">
             {EXAMPLES.slice(0, 4).map((example) => (
-              <button key={example} type="button" onClick={() => sendMessage(example)} disabled={loading}>
+              <button key={example} type="button" onClick={() => setInput(example)} disabled={loading}>
                 {example}
               </button>
             ))}
@@ -92,24 +92,11 @@ export default function FloatingChatbot() {
                 {message.examples && (
                   <div className="chatbot-example-list">
                     {message.examples.map((example) => (
-                      <button key={example} type="button" onClick={() => sendMessage(example)}>{example}</button>
+                      <button key={example} type="button" onClick={() => setInput(example)}>{example}</button>
                     ))}
                   </div>
                 )}
-                {Array.isArray(message.data) && message.data.length > 0 && (
-                  <ul className="chatbot-data-preview">
-                    {message.data.slice(0, 3).map((row) => (
-                      <li key={row.id || JSON.stringify(row).slice(0, 20)}>
-                        #{row.id || '-'} {row.well_name || row.alert_name || row.title || row.asset_name || row.task_name || row.permit_number || row.name || row.part_name || row.document_title || row.setting_key || row.report_name || row.integration_name || row.request_title || row.shift_name || row.endpoint || row.metric || row.pipeline_name || 'Record'}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {!Array.isArray(message.data) && message.data && typeof message.data === 'object' && (
-                  <div className="chatbot-object-preview">
-                    {message.data.analysis || message.data.summary || message.data.message || `Returned ${Object.keys(message.data).length} fields.`}
-                  </div>
-                )}
+                {message.data !== undefined && message.data !== null && <AIResultReport data={message.data} title="Assistant result" />}
                 {message.action?.path && (
                   <button
                     type="button"

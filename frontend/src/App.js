@@ -1,3 +1,4 @@
+import AIReportLibrary from "./components/AIReportLibrary";
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, NavLink, useNavigate } from 'react-router-dom';
 import {
@@ -175,7 +176,7 @@ function AppShell({ children }) {
             <span>Logout</span>
           </button>
         </div>
-      </aside>
+      <AIReportLibrary /></aside>
       <main className="app-main">{children}</main>
       <FloatingChatbot />
     </div>

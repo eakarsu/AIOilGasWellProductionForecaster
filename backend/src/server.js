@@ -12,7 +12,13 @@ const app = express();
 const PORT = process.env.BACKEND_PORT || 4000;
 
 // Security
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      scriptSrcAttr: ["'unsafe-inline'"],
+    },
+  },
+}));
 const allowedOrigins=String(process.env.CORS_ORIGINS||process.env.CLIENT_URL||'http://localhost:3000,http://localhost:3500').split(',').map(v=>v.trim()).filter(Boolean);
 app.use(cors({origin:(origin,cb)=>!origin||allowedOrigins.includes(origin)?cb(null,true):cb(new Error('Origin not allowed by CORS')),credentials:true}));
 app.use(express.json());
@@ -61,6 +67,14 @@ app.use('/api/custom-views', require('./routes/customViews'));
 app.use('/api/governed-well-forecasts',governanceRouter);
 
 // Generic error handler
+
+// Advisory AI reports only; native execution and approval routes stay unchanged.
+const aiWorkspaceSupport = require("../aiWorkspaceAdapters.cjs");
+const aiWorkspaceDatabase = require("./models/db.js");
+app.use('/api/report-workspace', require("../aiWorkspace.cjs").createAIWorkspaceRouter({
+  pool: aiWorkspaceDatabase, authenticateToken: require("./middleware/auth.js"),
+  aiRateLimiter: aiWorkspaceSupport.createWorkspaceLimiter(), features: require("../aiWorkspaceFeatures.json"),
+}));
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(err.status || 500).json({

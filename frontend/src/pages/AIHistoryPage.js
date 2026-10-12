@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { getAIHistory, getAIHistoryItem } from '../services/api';
 import AIResultReport from '../components/AIResultReport';
+import { recordList } from '../services/recordList';
 
 export default function AIHistoryPage() {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ export default function AIHistoryPage() {
     setLoading(true);
     try {
       const { data } = await getAIHistory({ page: p, limit: 20 });
-      setRecords(data.data || []);
+      setRecords(recordList(data));
       setTotalPages(data.pagination?.totalPages || 1);
     } catch (err) {
       toast.error('Failed to load AI history');

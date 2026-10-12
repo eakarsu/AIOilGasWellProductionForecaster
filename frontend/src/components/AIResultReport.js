@@ -63,13 +63,16 @@ function parseMaybeJson(value) {
 function normalizeReport(data) {
   const parsed = parseMaybeJson(data);
   if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-    return parsed.result_json || parseMaybeJson(parsed.raw) || parsed;
+    if (parsed.result_json !== undefined && parsed.result_json !== null) return parseMaybeJson(parsed.result_json);
+    if (parsed.raw !== undefined && parsed.raw !== null) return parseMaybeJson(parsed.raw);
+    return parsed;
   }
   return parsed;
 }
 
 function sentenceText(value) {
-  if (value === null || value === undefined || value === '') return 'Not specified';
+  if (value === null || value === undefined) return 'Not specified';
+  if (value === '') return 'Empty string';
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   if (typeof value === 'number') return value.toLocaleString();
   return String(value);
@@ -137,7 +140,7 @@ function renderObjectDetails(value, skipKeys = []) {
 
 function renderObjectCard(item, index) {
   const [titleKey, title] = findCardTitle(item, `Item ${index + 1}`);
-  const badges = Object.entries(item).filter(([key, value]) => BADGE_KEYS.includes(key) && value !== undefined && value !== null && value !== '');
+  const badges = Object.entries(item).filter(([key, value]) => BADGE_KEYS.includes(key) && value !== undefined && value !== null);
   return (
     <div className="ai-report-item-card" key={index}>
       <div className="ai-report-item-header">
@@ -166,6 +169,13 @@ function renderArray(value) {
         ))}
       </ul>
     );
+  }
+
+  if (value.every((item) => item && typeof item === 'object' && !Array.isArray(item))) {
+    const columns = [...new Set(value.flatMap((item) => Object.keys(item)))];
+    if (columns.length <= 6 && value.length > 1 && value.every((item) => columns.every((key) => item[key] === null || typeof item[key] !== 'object'))) {
+      return <div className="ai-report-table-wrap"><table className="ai-report-table"><thead><tr>{columns.map((key) => <th key={key}>{humanizeKey(key)}</th>)}</tr></thead><tbody>{value.map((item, index) => <tr key={index}>{columns.map((key) => <td key={key}>{sentenceText(item[key])}</td>)}</tr>)}</tbody></table></div>;
+    }
   }
 
   return (
@@ -214,9 +224,9 @@ export default function AIResultReport({ data, title = 'AI Analysis Report' }) {
   const report = normalizeReport(data);
   const source = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
 
-  if (!report) return null;
+  if (report === null || report === undefined) return null;
 
-  if (typeof report === 'string') {
+  if (typeof report !== 'object' || Array.isArray(report)) {
     return (
       <div className="ai-report">
         <div className="ai-report-header">
@@ -237,15 +247,16 @@ export default function AIResultReport({ data, title = 'AI Analysis Report' }) {
   }
 
   const prioritizedSections = PRIORITY_KEYS
-    .filter((key) => sectionValue(report, key) !== undefined && sectionValue(report, key) !== null && sectionValue(report, key) !== '')
+    .filter((key) => sectionValue(report, key) !== undefined && sectionValue(report, key) !== null)
     .map((key) => [key, sectionValue(report, key)]);
 
   const remainingSections = Object.entries(report)
-    .filter(([key, value]) => !META_KEYS.has(key) && !PRIORITY_KEYS.includes(key) && value !== undefined && value !== null && value !== '');
+    .filter(([key, value]) => !META_KEYS.has(key) && !PRIORITY_KEYS.includes(key) && value !== undefined && value !== null);
 
   const metaItems = [
     source.model ? ['Model', source.model] : null,
-    source.tokens_used || source.tokensUsed ? ['Tokens', source.tokens_used || source.tokensUsed] : null,
+    source.tokens_used !== undefined && source.tokens_used !== null ? ['Tokens', source.tokens_used] :
+      source.tokensUsed !== undefined && source.tokensUsed !== null ? ['Tokens', source.tokensUsed] : null,
     source.id ? ['Run ID', source.id] : null,
   ].filter(Boolean);
 

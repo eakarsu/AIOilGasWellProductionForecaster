@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAlerts, createAlert, updateAlert, deleteAlert, checkAlerts } from '../services/api';
 import { toast } from 'react-toastify';
+import { recordList } from '../services/recordList';
 
 const TABLE_OPTIONS = [
   'wellhead_analytics', 'reservoir_simulation', 'decline_curves', 'equipment_failure',
@@ -34,7 +35,7 @@ export default function AlertsPage() {
   const fetchAlerts = useCallback(async () => {
     try {
       const { data } = await getAlerts();
-      setAlerts(data);
+      setAlerts(recordList(data));
     } catch (err) {
       toast.error('Failed to load alerts');
     } finally {

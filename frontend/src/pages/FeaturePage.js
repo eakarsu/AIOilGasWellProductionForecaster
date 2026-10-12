@@ -5,6 +5,7 @@ import { getItems, getItem, createItem, updateItem, deleteItem, analyzeWithAI, c
 import { toast } from 'react-toastify';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import AIResultReport from '../components/AIResultReport';
+import { recordList } from '../services/recordList';
 
 export default function FeaturePage() {
   const { featureKey } = useParams();
@@ -28,7 +29,7 @@ export default function FeaturePage() {
   const fetchItems = useCallback(async () => {
     try {
       const { data } = await getItems(feature.endpoint);
-      setItems(data);
+      setItems(recordList(data));
     } catch (err) {
       toast.error('Failed to load data');
     } finally {
