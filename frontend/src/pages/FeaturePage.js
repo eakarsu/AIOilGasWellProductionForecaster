@@ -223,11 +223,11 @@ export default function FeaturePage() {
 
       {/* Detail Modal */}
       {showDetail && selectedItem && (
-        <div className="modal-overlay" onClick={() => setShowDetail(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={() => { setShowDetail(false); setSelectedItem(null); }}>
+          <div className="modal" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{selectedItem[feature.fields[0].key]}</h2>
-              <button className="modal-close" onClick={() => setShowDetail(false)}>&times;</button>
+              <button className="modal-close" onClick={() => { setShowDetail(false); setSelectedItem(null); }}>&times;</button>
             </div>
             <div className="modal-body">
               <div className="detail-grid">
@@ -320,9 +320,9 @@ export default function FeaturePage() {
               )}
             </div>
             <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => setShowDetail(false)}>Close</button>
               <button className="btn btn-primary" onClick={handleEdit} style={{ width: 'auto' }}>&#9998; Edit</button>
               <button className="btn btn-danger" onClick={handleDelete}>&#128465; Delete</button>
+              <button className="btn btn-secondary btn-cancel" onClick={() => { setShowDetail(false); setSelectedItem(null); }}>Cancel</button>
             </div>
           </div>
         </div>

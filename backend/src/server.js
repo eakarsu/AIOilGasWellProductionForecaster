@@ -52,6 +52,7 @@ app.use('/api/alerts', require('./routes/alerts'));
 app.use('/api/kpi', require('./routes/kpi'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/field-notes', require('./routes/fieldNotes'));
+app.use('/api/feature-pack', require('./routes/featurePack'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/production-history', require('./routes/productionHistory'));
 app.use('/api/ai-history', require('./routes/aiHistory'));
